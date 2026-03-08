@@ -9,4 +9,4 @@ npm-debug.log*
 .cache/
 .wrangler/
 worker-configuration.d.ts
-.claude/
+.claude/settings.local.json
