@@ -121,7 +121,7 @@ This repository is a "Clean Slate" pre-configured for **Claude Code** and **Goog
 * Advanced Gallery filtering and search indexing.
 * Deeper image optimization pipelines.
 
-*(See the full [**ROADMAP.md**](./ROADMAP.md) and [**DEVLOG.md**](./DEVLOG.md) for detailed progress and history.)*
+*(See the full [**ROADMAP.md**](./ROADMAP.md) for detailed progress and release history.)*
 
 ---
 

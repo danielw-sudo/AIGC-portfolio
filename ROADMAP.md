@@ -53,3 +53,25 @@
 - [ ] llms.txt for AI discoverability
 - [ ] Image optimization pipeline (WebP conversion, thumbnails)
 - [ ] Batch import/export (JSON or CSV)
+
+---
+
+## Release History
+
+### v1.2.0 (2026-03-07) — Agentic Handoff & Docs Refactor
+- Consolidated QuickStart docs (`DEPLOY_WITH_AI.md`, `SETUP.md`, `how-to-get-free-test-api.md`) into `src/QuickStart/`.
+- Split monolithic `README.md` into `README.md` (EN), `README_ZH.md`, and `README_JA.md`.
+- Added `.antigravity/rules.md` as a strict AI-to-AI system prompt handoff to ensure fast agent onboarding.
+
+### v1.1.0 (2026-03-07) — Setup Automation
+- Shipped `setup.sh`: Interactive bash script to automate D1/R2 creation, JSON config patching, schema migration, and deployment.
+- Refactored `SETUP.md` to highlight "Quick Setup" vs. "Manual Setup".
+- **Architecture Note:** Employs `node -e` for robust JSON manipulation and `printf -v` to prevent shell injection. Fast, idempotent deploys.
+
+### v1.0.0 (2026-03-04) — Initial Template Release
+- Full Astro 5 SSR app running on Cloudflare Workers edge.
+- D1 Database for dynamic gallery/blog content; R2 for image storage; JSON files for static configuration.
+- Multi-provider AI integration (CF Workers AI, NVIDIA NIM, Google Gemini) via prefix string routing (`@cf/`, `@nv/`, `@google/`).
+- Zero Trust Admin Panel handles auth at the infrastructure level.
+- Complete responsive design system (Tailwind CSS V4, Light/Dark mode).
+- SEO optimized (JSON-LD, Canonical URLs, Sitemap).
