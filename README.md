@@ -107,6 +107,24 @@ This repository is a "Clean Slate" pre-configured for **Claude Code** and **Goog
 
 ---
 
+## 🗺️ Roadmap Snapshot
+
+**Currently Available (v1.2.0):**
+* Full Gallery & Markdown Blog with Cloudflare D1 + R2.
+* Zero-Code Automation via `setup.sh`.
+* Multi-Provider Vision AI (NVIDIA, Gemini, CF Workers AI).
+* Zero Trust Admin Panel.
+* Built-in `.antigravity/` AI Handoff for instant agentic coding.
+
+**Coming Soon:**
+* Chatbot Setup Assistant (Web-based guided fork + deploy).
+* Advanced Gallery filtering and search indexing.
+* Deeper image optimization pipelines.
+
+*(See the full [**ROADMAP.md**](./ROADMAP.md) and [**DEVLOG.md**](./DEVLOG.md) for detailed progress and history.)*
+
+---
+
 ## 🌍 Usage, Ethics & Regulation
 
 > [NOTICE]

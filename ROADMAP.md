@@ -30,6 +30,9 @@
 ## Planned
 
 ### Phase 4c — Polish & Docs
+- [x] Restructure root documentation into `src/QuickStart/`
+- [x] Multilingual README split (EN, ZH, JA)
+- [x] Agentic Handoff config (`.antigravity/rules.md`)
 - [ ] Screenshot walkthrough for SETUP.md
 - [ ] Admin quick-start guide improvements
 - [ ] Contributing guide

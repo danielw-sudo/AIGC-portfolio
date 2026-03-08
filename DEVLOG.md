@@ -1,5 +1,16 @@
 # AIGC Portfolio — Development Log
 
+## v1.2.0 — Agentic Handoff & Docs Refactor (2026-03-07)
+
+### What shipped
+- **`.antigravity/rules.md`** — Dedicated, dense system-prompt handoff file for future AI Agents (like Gemini in Antigravity) running locally on user forks.
+- **`src/QuickStart/`** — Consolidated `SETUP.md`, `DEPLOY_WITH_AI.md`, and `how-to-get-free-test-api.md` into a single directory to drastically decline root clutter.
+- **Multilingual READMEs** — Split the monolithic `README.md` into three dedicated files (`README.md` [EN], `README_ZH.md` [ZH], `README_JA.md` [JA]) with clean top-level cross-linking.
+
+### Decisions
+- **AI-to-AI Handoff Logic** — `.antigravity/rules.md` is written purely as an XML/Markdown directive (`<system_handoff>`) focusing strictly on edge runtime constraints, data separation, and V4 styling. It empowers the next AI without dictating feature choices.
+- **Root Minimalism** — The repository root should only contain the absolute essentials for a new developer or their agent to understand the project's purpose (`README.md`, `ROADMAP.md`, `DEVLOG.md`). Everything else is organized.
+
 ## v1.1.0 — Setup Automation (2026-03-07)
 
 ### What shipped
