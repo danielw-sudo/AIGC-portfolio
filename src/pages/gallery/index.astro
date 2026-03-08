@@ -1,0 +1,223 @@
+---
+import MainLayout from '@/layouts/MainLayout.astro';
+import ImageCard from '@/components/ImageCard.astro';
+import TagPill from '@/components/TagPill.astro';
+import Pagination from '@/components/Pagination.astro';
+import { EntryService, TaxonomyService, SettingsService } from '@/lib/data';
+
+const { env } = Astro.locals.runtime;
+const page = Number(Astro.url.searchParams.get('page')) || 1;
+const q = Astro.url.searchParams.get('q')?.trim() || '';
+
+const entries = new EntryService(env.DB);
+const taxonomy = new TaxonomyService(env.DB);
+const settings = new SettingsService(env.DB);
+
+const [result, models, tags, metaDesc] = await Promise.all([
+  q ? entries.search(q, page, 24) : entries.listPublished(page, 24),
+  taxonomy.getModelsWithCount(),
+  taxonomy.getTagsWithCount(),
+  settings.getMetaDesc('gallery', 'The ones I love most — feel free to borrow a prompt.'),
+]);
+
+const activeModels = models.filter((m) => m.entry_count > 0);
+const activeTags = tags.filter((t) => t.entry_count > 0);
+const basePath = q ? `/gallery/?q=${encodeURIComponent(q)}` : '/gallery/';
+---
+
+<MainLayout title="Gallery" description={metaDesc}>
+  <!-- Search-first hero -->
+  <section class="max-w-3xl mx-auto px-4 pt-10 sm:pt-14 pb-4 text-center">
+    <h1 class="text-text-secondary text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight mb-5 hero-enter">
+      Whisper spells, chart the frontier of <span class="text-accent">AI art</span>.
+    </h1>
+    <form action="/gallery" method="get" class="relative hero-enter-delay">
+      <input
+        type="text"
+        name="q"
+        value={q}
+        placeholder="Search images, prompts..."
+        autocomplete="off"
+        class="w-full px-5 py-3 pl-12 rounded-xl border border-border
+               bg-surface-raised text-text-primary placeholder:text-text-muted
+               focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent
+               text-sm sm:text-base transition-colors"
+      />
+      <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+    </form>
+    {q && (
+      <p class="text-text-secondary text-sm mt-3">
+        {result.total} result{result.total !== 1 ? 's' : ''} for "<span class="text-text-primary">{q}</span>"
+        <a href="/gallery" class="text-accent hover:underline ml-2">Clear</a>
+      </p>
+    )}
+  </section>
+
+  <!-- Model + tag filters -->
+  {!q && (activeModels.length > 0 || activeTags.length > 0) && (
+    <section class="max-w-4xl mx-auto px-4 pb-6">
+      {activeModels.length > 0 && (
+        <div class="relative mb-3">
+          <div id="models-row" class="flex gap-2 justify-center flex-nowrap overflow-hidden" style="max-height:2.25rem">
+            {activeModels.map((m) => (
+              <TagPill href={`/models/${m.slug}`} label={m.title} count={m.entry_count} />
+            ))}
+          </div>
+          <button type="button" id="models-more" class="hidden text-xs text-accent hover:underline mt-1 mx-auto block">more</button>
+        </div>
+      )}
+      {activeTags.length > 0 && (
+        <div class="relative">
+          <div id="tags-cloud" class="flex gap-1.5 justify-center flex-wrap overflow-hidden transition-all" style="max-height:4.5rem">
+            {activeTags.map((t, i) => (
+              <a
+                href={`/tags/${t.slug}`}
+                class:list={[
+                  'text-xs px-2 py-0.5 rounded transition-colors',
+                  `tag-color-${i % 8}`,
+                ]}
+              >
+                {t.title}
+                <span class="opacity-60 text-[10px] ml-0.5">{t.entry_count}</span>
+              </a>
+            ))}
+          </div>
+          <button type="button" id="tags-more" class="hidden text-xs text-accent hover:underline mt-1 mx-auto block">more</button>
+        </div>
+      )}
+    </section>
+  )}
+
+  <!-- Masonry grid -->
+  <section class="max-w-6xl mx-auto px-4 pb-16">
+    {result.data.length === 0 ? (
+      <div class="text-center py-20">
+        <p class="text-text-muted text-lg">{q ? 'No whispers match that search. Try a different spell.' : 'No images yet'}</p>
+        {!q && <p class="text-text-muted text-sm mt-2">Upload your first artwork in the admin panel</p>}
+      </div>
+    ) : (
+      <div id="masonry-grid" class="masonry-grid opacity-0 transition-opacity duration-500"
+           data-total-pages={result.total_pages} data-base-path={basePath}>
+        {result.data.map((entry) => (
+          <div class="masonry-item">
+            <ImageCard entry={entry} />
+          </div>
+        ))}
+      </div>
+    )}
+
+    {/* Search: traditional pagination. Gallery: Load More */}
+    {q ? (
+      <Pagination page={page} totalPages={result.total_pages} basePath={basePath} />
+    ) : result.total_pages > 1 && (
+      <div id="load-more-wrap" class="flex justify-center mt-10">
+        <a id="load-more" href={`/gallery/?page=2`}
+           class="px-6 py-2.5 text-sm font-medium bg-surface-raised hover:bg-surface-overlay
+                  border border-border hover:border-accent rounded-xl transition-all">
+          Load more
+        </a>
+      </div>
+    )}
+  </section>
+
+  <script>
+    // Overflow "more" toggles for models + tags
+    function setupOverflow(containerId: string, btnId: string) {
+      const el = document.getElementById(containerId);
+      const btn = document.getElementById(btnId);
+      if (!el || !btn) return;
+      if (el.scrollHeight > el.clientHeight + 2) {
+        btn.classList.remove('hidden');
+        let expanded = false;
+        btn.addEventListener('click', () => {
+          expanded = !expanded;
+          el.style.maxHeight = expanded ? `${el.scrollHeight}px` : '';
+          btn.textContent = expanded ? 'less' : 'more';
+        });
+      }
+    }
+    setupOverflow('models-row', 'models-more');
+    setupOverflow('tags-cloud', 'tags-more');
+  </script>
+
+  <script>
+    import Masonry from 'masonry-layout';
+    import imagesLoaded from 'imagesloaded';
+
+    const grid = document.getElementById('masonry-grid');
+    if (grid) {
+      const msnry = new Masonry(grid, {
+        itemSelector: '.masonry-item',
+        columnWidth: '.masonry-item',
+        percentPosition: true,
+        transitionDuration: 0,
+      });
+
+      // Staggered card reveal
+      imagesLoaded(grid, () => {
+        msnry.layout();
+        grid.classList.remove('opacity-0');
+        const items = grid.querySelectorAll('.masonry-item');
+        items.forEach((item, i) => {
+          (item as HTMLElement).style.animationDelay = `${i * 40}ms`;
+          item.classList.add('revealed');
+        });
+        requestAnimationFrame(() => { msnry.options.transitionDuration = '0.3s'; });
+      });
+
+      // Relayout on resize / orientation change
+      let resizeTimer: ReturnType<typeof setTimeout>;
+      const relayout = (delay = 200) => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => msnry.layout(), delay);
+      };
+      window.addEventListener('resize', () => relayout(), { passive: true });
+      window.addEventListener('orientationchange', () => relayout(400));
+
+      // Load More (gallery only, not search)
+      const loadMoreBtn = document.getElementById('load-more');
+      const totalPages = parseInt(grid.dataset.totalPages || '1', 10);
+      if (loadMoreBtn && totalPages > 1) {
+        let currentPage = 1;
+        loadMoreBtn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          currentPage++;
+          loadMoreBtn.textContent = 'Loading\u2026';
+          try {
+            const res = await fetch(`/gallery/?page=${currentPage}`);
+            const html = await res.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const newItems = [...doc.querySelectorAll('.masonry-item')];
+            if (newItems.length === 0) {
+              loadMoreBtn.parentElement?.remove();
+              return;
+            }
+            const fragment = document.createDocumentFragment();
+            const appended: HTMLElement[] = [];
+            newItems.forEach((item) => {
+              const node = document.importNode(item, true) as HTMLElement;
+              appended.push(node);
+              fragment.appendChild(node);
+            });
+            grid.appendChild(fragment);
+            imagesLoaded(appended, () => {
+              msnry.appended!(appended);
+              msnry.layout();
+              // Stagger new cards
+              appended.forEach((item, i) => {
+                item.style.animationDelay = `${i * 40}ms`;
+                item.classList.add('revealed');
+              });
+            });
+            loadMoreBtn.textContent = 'Load more';
+            if (currentPage >= totalPages) loadMoreBtn.parentElement?.remove();
+          } catch {
+            loadMoreBtn.textContent = 'Load more';
+          }
+        });
+      }
+    }
+  </script>
+</MainLayout>

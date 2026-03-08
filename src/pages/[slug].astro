@@ -1,0 +1,239 @@
+---
+import MainLayout from '@/layouts/MainLayout.astro';
+import TagPill from '@/components/TagPill.astro';
+import ImageCard from '@/components/ImageCard.astro';
+import { EntryService, EntryImageService, PageService } from '@/lib/data';
+import { marked } from 'marked';
+
+const { env } = Astro.locals.runtime;
+const { slug } = Astro.params;
+
+if (!slug) return Astro.redirect('/');
+
+// Try entry first
+const entries = new EntryService(env.DB);
+const entry = await entries.getBySlug(slug);
+
+// If no entry, try page
+let page = null;
+if (!entry) {
+  const pageService = new PageService(env.DB);
+  page = await pageService.getBySlug(slug);
+  if (!page || page.status !== 'published') return Astro.redirect('/');
+}
+
+// Entry-specific data
+let images: Awaited<ReturnType<EntryImageService['listByEntry']>> = [];
+let hasGallery = false;
+if (entry) {
+  const imageService = new EntryImageService(env.DB);
+  images = await imageService.listByEntry(entry.id);
+  hasGallery = images.length > 0;
+}
+
+// Related entries
+const related = entry ? await entries.listRelated(entry.id, 3) : [];
+
+// Markdown rendering
+const pageHtml = page?.content ? marked.parse(page.content) : '';
+const descriptionHtml = entry?.description ? marked.parse(entry.description) : '';
+
+// Auto-generate page description: strip markdown/html, take first 160 chars
+const pageDescription = page?.content
+  ? page.content.replace(/[#*_\[\]()>`~]+/g, '').replace(/\s+/g, ' ').trim().substring(0, 160)
+  : page?.title || '';
+
+// JSON-LD structured data for entry detail (ImageObject)
+const jsonLd = entry ? JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'ImageObject',
+  name: entry.title,
+  description: entry.prompt?.substring(0, 300) || entry.title,
+  contentUrl: entry.image_url,
+  thumbnailUrl: entry.image_url,
+  url: `${import.meta.env.SITE_URL || 'https://example.com'}/${slug}`,
+  creator: { '@type': 'Person', name: import.meta.env.SITE_AUTHOR || 'Author' },
+  dateCreated: entry.created_at?.split(' ')[0],
+  ...(entry.width && entry.height ? { width: entry.width, height: entry.height } : {}),
+  ...(entry.tags?.length ? { keywords: entry.tags.map((t: { title: string }) => t.title).join(', ') } : {}),
+}) : null;
+---
+
+{entry ? (
+<MainLayout title={entry.title} description={entry.prompt?.substring(0, 160) || entry.title} ogImage={entry.image_url} ogType="article" publishedTime={entry.created_at?.split(' ')[0]}>
+  <script slot="head" type="application/ld+json" set:html={jsonLd} />
+  <article class="max-w-7xl mx-auto px-4 pt-6 sm:pt-10 pb-16">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10">
+      <!-- Left column: Image -->
+      <div>
+        <div class="rounded-xl overflow-hidden border border-border bg-surface-raised cursor-pointer" data-lightbox-trigger="0">
+          <img
+            src={entry.image_url}
+            alt={entry.title}
+            class="w-full max-h-[60vh] lg:max-h-[80vh] object-contain"
+            onerror="this.style.display='none';this.parentElement.innerHTML='<div class=\'flex items-center justify-center h-64 text-6xl text-text-muted\'>🖼</div>'"
+          />
+        </div>
+
+        {hasGallery && (
+          <div class="mt-3 flex gap-2 overflow-x-auto pb-2">
+            <button class="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 border-accent opacity-100 transition-all" data-lightbox-trigger="0">
+              <img src={entry.image_url} alt="Cover" class="w-full h-full object-cover" />
+            </button>
+            {images.map((img, idx) => (
+              <button class="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 border-border hover:border-accent/50 opacity-80 hover:opacity-100 transition-all" data-lightbox-trigger={String(idx + 1)}>
+                <img src={img.image_url} alt={`Image ${idx + 2}`} class="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <!-- Right column: Content -->
+      <div class="space-y-6">
+        <div class="flex flex-wrap items-center gap-2">
+          {entry.model && <TagPill href={`/models/${entry.model.slug}`} label={entry.model.title} />}
+          {entry.tags?.map((tag) => <TagPill href={`/tags/${tag.slug}`} label={tag.title} />)}
+          {entry.featured && <span class="text-yellow-400 text-sm">★ Featured</span>}
+        </div>
+
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">{entry.title}</h1>
+        {descriptionHtml && (
+          <div class="prose prose-sm max-w-none" set:html={descriptionHtml} />
+        )}
+
+        {entry.prompt && (
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <h2 class="text-sm font-semibold text-text-secondary uppercase tracking-wider">Prompt</h2>
+              <button id="copy-prompt" data-prompt={entry.prompt} class="text-xs text-accent hover:text-accent-hover transition-colors">Copy</button>
+            </div>
+            <div class="bg-surface-raised border border-border rounded-lg p-4 max-h-64 overflow-y-auto">
+              <p class="font-mono text-sm text-text-primary whitespace-pre-wrap leading-relaxed">{entry.prompt}</p>
+            </div>
+          </div>
+        )}
+
+        {entry.negative_prompt && (
+          <div>
+            <h2 class="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-2">Negative Prompt</h2>
+            <div class="bg-surface-raised border border-border rounded-lg p-4 max-h-40 overflow-y-auto">
+              <p class="font-mono text-sm text-text-muted whitespace-pre-wrap leading-relaxed">{entry.negative_prompt}</p>
+            </div>
+          </div>
+        )}
+
+        {entry.source_url && (
+          <div>
+            <h2 class="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-2">Source</h2>
+            <a href={entry.source_url} target="_blank" rel="noopener noreferrer" class="text-sm text-accent hover:text-accent-hover transition-colors truncate block">
+              {entry.source_url.replace(/^https?:\/\//, '').substring(0, 60)}{entry.source_url.length > 70 ? '…' : ''} ↗
+            </a>
+          </div>
+        )}
+
+        <div class="pt-4 border-t border-border text-xs text-text-muted flex flex-wrap items-center gap-x-4 gap-y-1">
+          {entry.mime_type && <span>{entry.mime_type}</span>}
+          {entry.width && entry.height && <span>{entry.width}×{entry.height}</span>}
+          {hasGallery && <span>{images.length + 1} images</span>}
+          <span>{entry.created_at.split(' ')[0]}</span>
+          <button id="share-btn" class="text-accent hover:text-accent-hover transition-colors ml-auto">Share</button>
+        </div>
+
+        <a href="/" class="text-sm text-text-secondary hover:text-text-primary transition-colors inline-block">← Back to gallery</a>
+      </div>
+    </div>
+  </article>
+
+  {related.length > 0 && (
+    <section class="max-w-7xl mx-auto px-4 pb-16">
+      <h2 class="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4">You might also like</h2>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        {related.map((r) => <ImageCard entry={r} />)}
+      </div>
+    </section>
+  )}
+
+  <!-- Lightbox -->
+  <div id="lightbox" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/90 backdrop-blur-sm">
+    <button id="lb-close" class="absolute top-4 right-4 text-white/70 hover:text-white text-3xl z-10" aria-label="Close">×</button>
+    <button id="lb-prev" class="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white text-4xl z-10 hidden" aria-label="Previous">‹</button>
+    <button id="lb-next" class="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white text-4xl z-10 hidden" aria-label="Next">›</button>
+    <img id="lb-img" class="max-w-[90vw] max-h-[90vh] object-contain" src="" alt="" />
+    <div id="lb-counter" class="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/50 text-sm hidden"></div>
+  </div>
+
+  <script define:vars={{ allImages: [{ image_url: entry.image_url }, ...images] }}>
+    const lightbox = document.getElementById('lightbox');
+    const lbImg = document.getElementById('lb-img');
+    const lbClose = document.getElementById('lb-close');
+    const lbPrev = document.getElementById('lb-prev');
+    const lbNext = document.getElementById('lb-next');
+    const lbCounter = document.getElementById('lb-counter');
+    const triggers = document.querySelectorAll('[data-lightbox-trigger]');
+    let currentIdx = 0;
+    const urls = allImages.map((i) => i.image_url);
+    const total = urls.length;
+
+    function openLightbox(idx) { currentIdx = idx; updateLightbox(); lightbox.classList.remove('hidden'); lightbox.classList.add('flex'); document.body.style.overflow = 'hidden'; }
+    function closeLightbox() { lightbox.classList.add('hidden'); lightbox.classList.remove('flex'); document.body.style.overflow = ''; }
+    function updateLightbox() {
+      lbImg.src = urls[currentIdx];
+      if (total > 1) { lbPrev.classList.toggle('hidden', currentIdx === 0); lbNext.classList.toggle('hidden', currentIdx === total - 1); lbCounter.classList.remove('hidden'); lbCounter.textContent = `${currentIdx + 1} / ${total}`; }
+    }
+
+    triggers.forEach((btn) => { btn.addEventListener('click', () => openLightbox(Number(btn.dataset.lightboxTrigger))); });
+    lbClose.addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
+    lbPrev.addEventListener('click', (e) => { e.stopPropagation(); if (currentIdx > 0) { currentIdx--; updateLightbox(); } });
+    lbNext.addEventListener('click', (e) => { e.stopPropagation(); if (currentIdx < total - 1) { currentIdx++; updateLightbox(); } });
+    document.addEventListener('keydown', (e) => {
+      if (lightbox.classList.contains('hidden')) return;
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowLeft' && currentIdx > 0) { currentIdx--; updateLightbox(); }
+      if (e.key === 'ArrowRight' && currentIdx < total - 1) { currentIdx++; updateLightbox(); }
+    });
+
+    const copyBtn = document.getElementById('copy-prompt');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', async () => {
+        const prompt = copyBtn.dataset.prompt;
+        if (!prompt) return;
+        try { await navigator.clipboard.writeText(prompt); copyBtn.textContent = 'Copied!'; setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000); }
+        catch { copyBtn.textContent = 'Failed'; setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000); }
+      });
+    }
+
+    const shareBtn = document.getElementById('share-btn');
+    if (shareBtn) {
+      shareBtn.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(window.location.href); shareBtn.textContent = 'Link copied!'; setTimeout(() => { shareBtn.textContent = 'Share'; }, 2000); }
+        catch { shareBtn.textContent = 'Failed'; setTimeout(() => { shareBtn.textContent = 'Share'; }, 2000); }
+      });
+    }
+  </script>
+</MainLayout>
+) : (
+<MainLayout title={page!.title} description={pageDescription} ogImage={page!.image_url || undefined}>
+  <article class="max-w-3xl mx-auto px-4 pt-8 sm:pt-12 pb-16">
+    {page!.image_url && (
+      <div class="rounded-xl overflow-hidden border border-border bg-surface-raised mb-8">
+        <img src={page!.image_url} alt={page!.title} class="w-full" />
+      </div>
+    )}
+    {page!.tags && page!.tags.length > 0 && (
+      <div class="flex flex-wrap gap-2 mb-6">
+        {page!.tags.map((tag) => <TagPill href={`/tags/${tag.slug}`} label={tag.title} />)}
+      </div>
+    )}
+    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-8">{page!.title}</h1>
+    <div class="prose prose-sm sm:prose-base max-w-none
+                prose-code:bg-surface-raised prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded"
+      set:html={pageHtml}
+    />
+    <div class="mt-12 pt-6 border-t border-border">
+      <a href="/" class="text-sm text-text-secondary hover:text-text-primary transition-colors">← Back to gallery</a>
+    </div>
+  </article>
+</MainLayout>
+)}

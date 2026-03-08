@@ -1,0 +1,167 @@
+---
+import MainLayout from '@/layouts/MainLayout.astro';
+import ImageCard from '@/components/ImageCard.astro';
+import { EntryService, SettingsService } from '@/lib/data';
+import { BlogPostService } from '@/lib/data/blog';
+
+const { env } = Astro.locals.runtime;
+const entries = new EntryService(env.DB);
+const blog = new BlogPostService(env.DB);
+const settings = new SettingsService(env.DB);
+
+const [featuredEntries, featuredBlogRaw, latestBlog, siteConfig, metaDesc] = await Promise.all([
+  entries.listFeatured(8),
+  blog.listFeatured(5),
+  blog.listLatest(5),
+  settings.getSiteConfig(),
+  settings.getMetaDesc('home', 'The artworks I like, with the prompts ready to remix. AI art is art. Hope you like it.'),
+]);
+
+// Featured first, fall back to latest
+const featuredBlog = featuredBlogRaw.length > 0 ? featuredBlogRaw : latestBlog;
+
+// Hero config with defaults
+const heroTitle = siteConfig.heroTitle || 'art<span class="text-accent">whisper</span>';
+const heroSubtitle = siteConfig.heroSubtitle || 'Curated AI-generated art with the prompts that made them.';
+const cta1Text = siteConfig.heroCta1.text || 'Browse Gallery';
+const cta1Url = siteConfig.heroCta1.url || '/gallery';
+const cta2Text = siteConfig.heroCta2.text || 'Read the Blog';
+const cta2Url = siteConfig.heroCta2.url || '/blog';
+---
+
+<MainLayout description={metaDesc}>
+  <!-- Hero -->
+  <section class="max-w-3xl mx-auto px-4 pt-16 sm:pt-24 pb-10 text-center">
+    <h1 class="text-4xl sm:text-5xl font-bold tracking-tight text-text-primary mb-4 hero-enter" set:html={heroTitle} />
+    <p class="text-text-secondary text-lg sm:text-xl mb-8 hero-enter-delay">
+      {heroSubtitle}
+    </p>
+    <div class="flex items-center justify-center gap-3 hero-enter-delay">
+      <a
+        href={cta1Url}
+        class="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent/90
+               text-white font-medium rounded-xl transition-colors"
+      >
+        {cta1Text}
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+        </svg>
+      </a>
+      <a
+        href={cta2Url}
+        class="inline-flex items-center gap-2 px-6 py-3 border border-accent/40
+               text-accent hover:bg-accent/10 font-medium rounded-xl transition-colors"
+      >
+        {cta2Text}
+      </a>
+    </div>
+  </section>
+
+  <!-- Featured Gallery — 4x2 grid, 4:5 aspect ratio -->
+  {featuredEntries.length > 0 && (
+    <section class="max-w-6xl mx-auto px-4 pb-16">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-semibold text-text-primary">Featured</h2>
+        <a href="/gallery" class="text-sm text-accent hover:underline">View all &rarr;</a>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {featuredEntries.map((entry) => (
+          <a href={`/${entry.slug}`} class="group block whisper-card featured-card">
+            <div class="relative overflow-hidden rounded-t-[12px] aspect-[4/5]">
+              <img
+                src={entry.image_url}
+                alt={entry.title}
+                loading="lazy"
+                class="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
+              />
+              {entry.model && (
+                <span class="absolute top-2 right-2 z-10 text-[9px] uppercase tracking-wider
+                              bg-black/60 text-white/90 px-2 py-0.5 rounded-full backdrop-blur-sm">
+                  {entry.model.title}
+                </span>
+              )}
+            </div>
+            <div class="px-3 py-2">
+              <div class="flex items-center gap-1.5">
+                {entry.featured && <span class="text-yellow-400 text-[10px]">★</span>}
+                <p class="text-[13px] sm:text-sm font-medium text-text-primary truncate">
+                  {entry.title}
+                </p>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <!-- Blog Accordion — mini hero + hover thumbnails -->
+  {featuredBlog.length > 0 && (
+    <section class="max-w-3xl mx-auto px-4 pb-16">
+      <div class="mb-8">
+        <div class="flex items-end justify-between mb-1">
+          <h2 class="text-3xl sm:text-4xl font-bold text-text-primary tracking-tight">blog</h2>
+          <a href="/blog" class="text-xs text-accent hover:underline">Read more &rarr;</a>
+        </div>
+        <p class="text-text-muted text-sm italic">Thus I'm perceiving and rendering…</p>
+      </div>
+      <div class="blog-accordion divide-y divide-border">
+        {featuredBlog.map((post) => (
+          <a href={`/blog/${post.slug}`} class="blog-acc-item block group">
+            <div class="flex items-center gap-3 py-3.5 px-1">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                  <span class="text-text-primary font-medium group-hover:text-accent transition-colors truncate">
+                    {post.title}
+                  </span>
+                  <svg
+                    class="w-4 h-4 text-text-muted group-hover:text-accent transition-all
+                           blog-acc-chevron flex-shrink-0 ml-2"
+                    fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+                <div class="blog-acc-body overflow-hidden max-h-0 transition-[max-height] duration-300">
+                  {post.summary && (
+                    <p class="text-sm text-text-secondary leading-relaxed mt-1 pr-2">
+                      {post.summary}
+                    </p>
+                  )}
+                </div>
+              </div>
+              {post.image_url && (
+                <img
+                  src={post.image_url}
+                  alt=""
+                  class="blog-acc-thumb w-16 h-16 rounded-lg object-cover flex-shrink-0
+                         opacity-0 transition-opacity duration-300"
+                />
+              )}
+            </div>
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <!-- Empty state fallback -->
+  {featuredEntries.length === 0 && featuredBlog.length === 0 && (
+    <section class="max-w-3xl mx-auto px-4 pb-16 text-center">
+      <p class="text-text-muted">No content yet. Start by uploading artwork in the admin panel.</p>
+    </section>
+  )}
+</MainLayout>
+
+<style>
+  /* Accordion: expand on hover */
+  .blog-acc-item:hover .blog-acc-body {
+    max-height: 8rem;
+  }
+  .blog-acc-item:hover .blog-acc-chevron {
+    transform: rotate(180deg);
+  }
+  .blog-acc-item:hover .blog-acc-thumb {
+    opacity: 1;
+  }
+</style>

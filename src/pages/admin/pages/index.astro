@@ -1,0 +1,48 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { PageService } from '@/lib/data';
+
+const { env } = Astro.locals.runtime;
+const pageService = new PageService(env.DB);
+const pages = await pageService.listAll();
+---
+
+<AdminLayout title="Pages">
+  <div class="max-w-3xl">
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold">Pages</h1>
+      <a href="/admin/pages/new"
+        class="bg-blue-600 hover:bg-blue-500 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm">
+        + New Page
+      </a>
+    </div>
+
+    <div class="space-y-2">
+      {pages.map((p) => (
+        <a
+          href={`/admin/pages/${p.id}`}
+          class="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-lg px-4 py-3
+                 hover:border-gray-700 transition-colors group"
+        >
+          <div>
+            <span class="font-medium text-white">{p.title || '(untitled)'}</span>
+            <span class="text-gray-600 text-xs ml-2">/{p.slug}</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class={`text-xs px-2 py-0.5 rounded ${
+              p.status === 'published'
+                ? 'bg-green-900/50 text-green-400'
+                : 'bg-gray-800 text-gray-500'
+            }`}>
+              {p.status}
+            </span>
+            <span class="text-gray-600 text-xs">{p.updated_at.split(' ')[0]}</span>
+          </div>
+        </a>
+      ))}
+      {pages.length === 0 && (
+        <p class="text-gray-500 text-center py-8">No pages yet</p>
+      )}
+    </div>
+  </div>
+</AdminLayout>

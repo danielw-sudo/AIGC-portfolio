@@ -1,0 +1,319 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { BlogTopicService } from '@/lib/data/blog';
+
+const { env } = Astro.locals.runtime;
+const topicSvc = new BlogTopicService(env.DB);
+const topics = await topicSvc.getAll();
+---
+
+<AdminLayout title="New Blog Post">
+  <h1 class="text-2xl font-bold mb-6">New Blog Post</h1>
+  <div id="message" class="hidden mb-4 px-4 py-2 rounded-lg text-sm"></div>
+
+  <form id="post-form" class="pb-20 lg:pb-0">
+    <div class="lg:grid lg:grid-cols-12 lg:gap-8">
+      <!-- LEFT: Content -->
+      <div class="lg:col-span-7 space-y-6 mb-6 lg:mb-0">
+
+        <!-- Body + AI -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="body" class="text-sm text-gray-400">Body (Markdown)</label>
+            <div class="flex items-center gap-1.5">
+              <select id="ai-mode" class="text-xs bg-gray-800 border border-gray-700 text-gray-300 rounded-md px-1.5 py-1 focus:outline-none focus:border-purple-500">
+                <option value="format">Format</option>
+                <option value="copywrite">Copywrite</option>
+              </select>
+              <select id="ai-tier" class="text-xs bg-gray-800 border border-gray-700 text-gray-300 rounded-md px-1.5 py-1 focus:outline-none focus:border-purple-500">
+                <option value="fast">Fast</option>
+                <option value="balanced">Balanced</option>
+                <option value="quality">Quality</option>
+              </select>
+              <button type="button" id="format-btn" class="text-xs bg-purple-600 hover:bg-purple-500 text-white px-2.5 py-1 rounded-md transition-colors">Format</button>
+            </div>
+          </div>
+          <div id="ai-suggestions" class="hidden mb-3 ai-panel-enter"></div>
+          <textarea id="body" name="body" rows="20" placeholder="Paste your raw draft here... then click Format to get AI suggestions"
+            class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"></textarea>
+        </div>
+
+        <!-- Summary -->
+        <div>
+          <label for="summary" class="block text-sm text-gray-400 mb-1">Summary</label>
+          <textarea id="summary" name="summary" rows="3" placeholder="Short summary for previews and SEO"
+            class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"></textarea>
+        </div>
+
+        <!-- Cover Image (optional) -->
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Cover Image (optional)</label>
+          <div class="flex gap-1 mb-0">
+            <button type="button" id="tab-upload" class="px-4 py-1.5 text-sm rounded-t-lg font-medium bg-gray-800 text-white border border-gray-700 border-b-0">Upload File</button>
+            <button type="button" id="tab-scrape" class="px-4 py-1.5 text-sm rounded-t-lg font-medium bg-gray-900 text-gray-400 border border-gray-700 border-b-0 hover:text-white transition-colors">Scrape URL</button>
+          </div>
+          <div id="panel-upload" class="border border-gray-700 rounded-b-lg rounded-tr-lg p-3">
+            <div id="drop-zone" class="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center hover:border-blue-500 transition-colors cursor-pointer">
+              <input type="file" id="image-input" accept="image/*" class="hidden" />
+              <div id="drop-text">
+                <p class="text-gray-400 text-sm">Drop an image or click to select</p>
+                <p class="text-gray-600 text-xs mt-1">JPG, PNG, WebP</p>
+              </div>
+              <img id="preview-upload" class="hidden mx-auto max-h-48 rounded-lg" />
+            </div>
+          </div>
+          <div id="panel-scrape" class="hidden border border-gray-700 rounded-b-lg rounded-tr-lg p-3">
+            <div class="flex gap-2">
+              <input type="url" id="scrape-url" placeholder="https://..."
+                class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+              <button type="button" id="scrape-btn" class="bg-purple-600 hover:bg-purple-500 text-white font-medium px-4 py-2 rounded-lg transition-colors whitespace-nowrap text-sm">Fetch</button>
+            </div>
+            <img id="preview-scrape" class="hidden mt-3 mx-auto max-h-48 rounded-lg" />
+          </div>
+          <div id="upload-progress" class="hidden mt-2">
+            <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
+              <div id="progress-bar" class="h-full bg-blue-500 transition-all duration-300" style="width:0%"></div>
+            </div>
+            <p id="upload-status" class="text-xs text-gray-500 mt-1"></p>
+          </div>
+          <input type="hidden" name="image_key" id="image-key" />
+          <input type="hidden" name="image_url" id="image-url" />
+          <input type="hidden" name="mime_type" id="mime-type" />
+          <input type="hidden" name="file_size" id="file-size" />
+          <input type="hidden" name="width" id="image-width" />
+          <input type="hidden" name="height" id="image-height" />
+        </div>
+      </div>
+
+      <!-- RIGHT: Sidebar -->
+      <div class="lg:col-span-5">
+        <div class="lg:sticky lg:top-20 space-y-6">
+
+          <!-- Publish box -->
+          <div class="bg-gray-900 border border-gray-700 rounded-lg p-4 space-y-4">
+            <div class="flex gap-6 items-center">
+              <div>
+                <label for="status" class="block text-xs text-gray-400 mb-1">Status</label>
+                <select id="status" name="status" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                </select>
+              </div>
+              <label class="inline-flex items-center gap-2 pt-4">
+                <input type="checkbox" id="featured" name="featured" class="accent-blue-500" />
+                <span class="text-sm text-gray-400">Featured</span>
+              </label>
+            </div>
+            <div class="flex gap-3">
+              <button type="submit" id="submit-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-6 rounded-lg transition-colors text-sm">Create Post</button>
+              <a href="/admin/blog" class="text-gray-400 hover:text-white py-2 px-4 transition-colors text-sm">Cancel</a>
+            </div>
+          </div>
+
+          <!-- Title -->
+          <div>
+            <label for="title" class="block text-sm text-gray-400 mb-1">Title *</label>
+            <input type="text" id="title" name="title" required placeholder="Enter post title"
+              class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+          </div>
+
+          <!-- Topics -->
+          <div>
+            <label class="block text-sm text-gray-400 mb-2">Topics</label>
+            <div class="flex gap-2 mb-3">
+              <input type="text" id="new-topic-input" placeholder="Add a topic..."
+                class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+              <button type="button" id="add-topic-btn" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">Add</button>
+            </div>
+            <div id="topic-list" class="flex flex-wrap gap-2">
+              {topics.map((t) => (
+                <label class="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-800 rounded-full text-sm hover:bg-gray-700 cursor-pointer transition-colors" data-tag-slug={t.slug}>
+                  <input type="checkbox" name="topic_ids" value={t.id} class="accent-blue-500" />
+                  <span>{t.title}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <!-- Mobile save bar -->
+  <div class="fixed bottom-0 inset-x-0 lg:hidden bg-gray-900/95 backdrop-blur-sm border-t border-gray-700 px-4 py-3 z-40">
+    <div class="flex items-center justify-between max-w-screen-xl mx-auto">
+      <span id="mobile-status" class="text-xs text-gray-400">Draft</span>
+      <button type="submit" form="post-form" id="mobile-create-btn"
+        class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium py-2 px-6 rounded-lg transition-colors">
+        Create
+      </button>
+    </div>
+  </div>
+
+  <script>
+    import { showMessage, setupDropZone, setupTabs, makeProg, renderBlogSuggestions } from '@/lib/admin-ui';
+    import { uploadFile, scrapeImage } from '@/lib/admin-ui';
+    import type { UploadResult } from '@/lib/admin-ui';
+
+    const form = document.getElementById('post-form') as HTMLFormElement;
+    const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+    const mobileBtn = document.getElementById('mobile-create-btn') as HTMLButtonElement | null;
+    const msgEl = document.getElementById('message')!;
+    const msg = (text: string, isError: boolean) => showMessage(msgEl, text, isError);
+
+    // --- Cover image ---
+    const coverProg = makeProg('progress-bar', 'upload-status', 'upload-progress');
+    setupTabs('tab-upload', 'tab-scrape', 'panel-upload', 'panel-scrape');
+
+    function setImageFields(d: UploadResult) {
+      (document.getElementById('image-key') as HTMLInputElement).value = d.image_key;
+      (document.getElementById('image-url') as HTMLInputElement).value = d.image_url;
+      (document.getElementById('mime-type') as HTMLInputElement).value = d.mime_type;
+      (document.getElementById('file-size') as HTMLInputElement).value = String(d.file_size);
+      (document.getElementById('image-width') as HTMLInputElement).value = d.width ? String(d.width) : '';
+      (document.getElementById('image-height') as HTMLInputElement).value = d.height ? String(d.height) : '';
+    }
+
+    setupDropZone('drop-zone', 'image-input', async (file) => {
+      (document.getElementById('preview-upload') as HTMLImageElement).src = URL.createObjectURL(file);
+      document.getElementById('preview-upload')!.classList.remove('hidden');
+      document.getElementById('drop-text')!.classList.add('hidden');
+      coverProg.show('Uploading...', 30);
+      try {
+        coverProg.set(60);
+        const data = await uploadFile(file);
+        setImageFields(data); coverProg.set(100, 'Uploaded ✓');
+      } catch (err) { coverProg.set(0, `Error: ${(err as Error).message}`, true); }
+    });
+
+    const scrapeBtn = document.getElementById('scrape-btn') as HTMLButtonElement;
+    const scrapeUrlInput = document.getElementById('scrape-url') as HTMLInputElement;
+    async function handleScrape() {
+      const url = scrapeUrlInput.value.trim(); if (!url) return;
+      scrapeBtn.disabled = true; scrapeBtn.textContent = 'Fetching...';
+      coverProg.show('Fetching...', 20);
+      try {
+        coverProg.set(50);
+        const data = await scrapeImage(url);
+        setImageFields(data);
+        (document.getElementById('preview-scrape') as HTMLImageElement).src = data.image_url;
+        document.getElementById('preview-scrape')!.classList.remove('hidden');
+        coverProg.set(100, 'Fetched ✓');
+      } catch (err) { coverProg.set(0, `Error: ${(err as Error).message}`, true); }
+      finally { scrapeBtn.disabled = false; scrapeBtn.textContent = 'Fetch'; }
+    }
+    scrapeBtn.addEventListener('click', handleScrape);
+    scrapeUrlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); handleScrape(); } });
+
+    // --- Topic manager ---
+    const topicInput = document.getElementById('new-topic-input') as HTMLInputElement;
+    const topicBtn = document.getElementById('add-topic-btn')!;
+    const topicList = document.getElementById('topic-list')!;
+
+    async function handleAddTopic() {
+      const title = topicInput.value.trim(); if (!title) return;
+      topicBtn.textContent = '...';
+      try {
+        const res = await fetch('/api/blog-topics', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title }),
+        });
+        if (!res.ok) throw new Error((await res.json()).error || 'Failed');
+        const topic = await res.json();
+        const existing = topicList.querySelector(`input[name="topic_ids"][value="${topic.id}"]`) as HTMLInputElement | null;
+        if (existing) { existing.checked = true; }
+        else {
+          const label = document.createElement('label');
+          label.className = 'inline-flex items-center gap-1.5 px-3 py-1 bg-gray-800 rounded-full text-sm hover:bg-gray-700 cursor-pointer transition-colors';
+          label.dataset.tagSlug = topic.slug;
+          label.innerHTML = `<input type="checkbox" name="topic_ids" value="${topic.id}" class="accent-blue-500" checked /><span>${escHtml(topic.title)}</span>`;
+          topicList.appendChild(label);
+        }
+        topicInput.value = '';
+      } catch (err) { msg((err as Error).message, true); }
+      finally { topicBtn.textContent = 'Add'; }
+    }
+    topicBtn.addEventListener('click', handleAddTopic);
+    topicInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddTopic(); } });
+
+    // --- AI Format / Copywrite ---
+    const formatBtn = document.getElementById('format-btn') as HTMLButtonElement;
+    const tierSelect = document.getElementById('ai-tier') as HTMLSelectElement;
+    const modeSelect = document.getElementById('ai-mode') as HTMLSelectElement;
+    const bodyEl = document.getElementById('body') as HTMLTextAreaElement;
+
+    modeSelect.addEventListener('change', () => {
+      formatBtn.textContent = modeSelect.value === 'copywrite' ? 'Copywrite' : 'Format';
+    });
+
+    formatBtn.addEventListener('click', async () => {
+      const draft = bodyEl.value.trim();
+      const mode = modeSelect.value;
+      const label = mode === 'copywrite' ? 'Copywrite' : 'Format';
+      if (!draft) { msg('Write or paste a draft first.', true); return; }
+      formatBtn.disabled = true; formatBtn.textContent = `${label === 'Format' ? 'Formatting' : 'Rewriting'}…`;
+      try {
+        const res = await fetch('/api/blog-analyze', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ draft, tier: tierSelect.value, mode }),
+        });
+        if (!res.ok) throw new Error((await res.json()).error || `${label} failed`);
+        const data = await res.json();
+        const p = data.parsed || data;
+        if (p.title || p.summary || p.body || p.topics?.length) {
+          renderBlogSuggestions(p, data.textModel || '', {
+            containerId: 'ai-suggestions',
+            titleId: 'title',
+            summaryId: 'summary',
+            bodyId: 'body',
+            topicListId: 'topic-list',
+            onMessage: msg,
+          });
+          msg('AI suggestions ready — review and apply.', false);
+        } else {
+          msg('AI returned an unstructured response. Try again.', true);
+        }
+      } catch (err) { msg((err as Error).message, true); }
+      finally { formatBtn.disabled = false; formatBtn.textContent = label; }
+    });
+
+    // --- Mobile status sync ---
+    const statusSelect = document.getElementById('status') as HTMLSelectElement;
+    const mobileStatus = document.getElementById('mobile-status');
+    if (mobileStatus) statusSelect.addEventListener('change', () => { mobileStatus.textContent = statusSelect.value; });
+
+    // --- Form submit ---
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = (document.getElementById('title') as HTMLInputElement).value.trim();
+      if (!title) { msg('Title is required.', true); return; }
+      submitBtn.disabled = true; submitBtn.textContent = 'Creating...';
+      if (mobileBtn) mobileBtn.disabled = true;
+      const topicIds = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="topic_ids"]:checked')).map(cb => Number(cb.value));
+      const payload: Record<string, unknown> = {
+        title,
+        summary: (document.getElementById('summary') as HTMLTextAreaElement).value || undefined,
+        body: bodyEl.value || undefined,
+        status: statusSelect.value,
+        featured: (document.getElementById('featured') as HTMLInputElement).checked,
+        topic_ids: topicIds.length > 0 ? topicIds : undefined,
+      };
+      const ik = (document.getElementById('image-key') as HTMLInputElement).value;
+      if (ik) {
+        payload.image_key = ik;
+        payload.image_url = (document.getElementById('image-url') as HTMLInputElement).value;
+        payload.mime_type = (document.getElementById('mime-type') as HTMLInputElement).value;
+        payload.file_size = Number((document.getElementById('file-size') as HTMLInputElement).value) || undefined;
+        payload.width = Number((document.getElementById('image-width') as HTMLInputElement).value) || undefined;
+        payload.height = Number((document.getElementById('image-height') as HTMLInputElement).value) || undefined;
+      }
+      try {
+        const res = await fetch('/api/blog', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error((await res.json()).error || 'Create failed');
+        window.location.href = '/admin/blog';
+      } catch (err) { msg((err as Error).message, true); submitBtn.disabled = false; submitBtn.textContent = 'Create Post'; if (mobileBtn) mobileBtn.disabled = false; }
+    });
+
+    function escHtml(s: string): string { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  </script>
+</AdminLayout>

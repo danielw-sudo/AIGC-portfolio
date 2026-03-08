@@ -1,0 +1,159 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { TaxonomyService } from '@/lib/data';
+
+const { env } = Astro.locals.runtime;
+const taxonomy = new TaxonomyService(env.DB);
+const tags = await taxonomy.getAllTags();
+---
+
+<AdminLayout title="New Page">
+  <div class="max-w-3xl">
+    <h1 class="text-2xl font-bold mb-6">New Page</h1>
+    <div id="message" class="hidden mb-4 px-4 py-2 rounded-lg text-sm"></div>
+
+    <form id="page-form" class="space-y-4">
+      <div>
+        <label for="title" class="block text-sm text-gray-400 mb-1">Title</label>
+        <input type="text" id="title" required
+          class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white
+                 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          placeholder="Page title" />
+      </div>
+      <div>
+        <label for="slug" class="block text-sm text-gray-400 mb-1">Slug</label>
+        <input type="text" id="slug"
+          class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white
+                 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          placeholder="auto-generated from title" />
+      </div>
+
+      <!-- Image -->
+      <div>
+        <label class="block text-sm text-gray-400 mb-2">Cover Image</label>
+        <div id="drop-zone" class="border-2 border-dashed border-gray-700 rounded-lg p-4 text-center hover:border-blue-500 transition-colors cursor-pointer">
+          <input type="file" id="image-input" accept="image/*" class="hidden" />
+          <p class="text-gray-400 text-sm">Drop an image or click to upload</p>
+        </div>
+        <img id="preview-img" class="hidden mt-3 max-h-48 rounded-lg border border-gray-700" />
+        <div id="upload-progress" class="hidden mt-2">
+          <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
+            <div id="progress-bar" class="h-full bg-blue-500 transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <p id="upload-status" class="text-xs text-gray-500 mt-1"></p>
+        </div>
+        <input type="hidden" id="image-key" />
+        <input type="hidden" id="image-url" />
+      </div>
+
+      <!-- Tags -->
+      <div>
+        <label class="block text-sm text-gray-400 mb-2">Tags</label>
+        <div class="flex gap-2 mb-3">
+          <input type="text" id="new-tag-input" placeholder="Add a tag..."
+            class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm
+                   focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+          <button type="button" id="add-tag-btn"
+            class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
+            Add
+          </button>
+        </div>
+        <div id="tag-list" class="flex flex-wrap gap-2">
+          {tags.map((t) => (
+            <label class="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-800 rounded-full text-sm
+                          hover:bg-gray-700 cursor-pointer transition-colors">
+              <input type="checkbox" name="tag_ids" value={t.id} class="accent-blue-500" />
+              <span>{t.title}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label for="content" class="block text-sm text-gray-400 mb-1">Content (Markdown)</label>
+        <textarea id="content" rows="16"
+          class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-mono text-sm
+                 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          placeholder="Write your content in Markdown..."
+        ></textarea>
+      </div>
+      <div>
+        <label for="status" class="block text-sm text-gray-400 mb-1">Status</label>
+        <select id="status"
+          class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white
+                 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+          <option value="draft">Draft</option>
+          <option value="published">Published</option>
+        </select>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="submit" id="submit-btn"
+          class="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-6 rounded-lg transition-colors">
+          Create Page
+        </button>
+        <a href="/admin/pages" class="text-gray-400 hover:text-white py-2 px-4 transition-colors">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    import { showMessage, setupDropZone, makeProg } from '@/lib/admin-ui';
+    import { uploadFile } from '@/lib/admin-ui';
+    import { initTagManager } from '@/lib/admin-ui';
+
+    const form = document.getElementById('page-form') as HTMLFormElement;
+    const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+    const msgEl = document.getElementById('message')!;
+    const msg = (text: string, isError: boolean) => showMessage(msgEl, text, isError);
+    const imageKeyEl = document.getElementById('image-key') as HTMLInputElement;
+    const imageUrlEl = document.getElementById('image-url') as HTMLInputElement;
+
+    // --- Image upload ---
+    const prog = makeProg('progress-bar', 'upload-status', 'upload-progress');
+    setupDropZone('drop-zone', 'image-input', async (file) => {
+      prog.show('Uploading...', 30);
+      try {
+        prog.set(60);
+        const data = await uploadFile(file);
+        imageKeyEl.value = data.image_key;
+        imageUrlEl.value = data.image_url;
+        const preview = document.getElementById('preview-img') as HTMLImageElement;
+        preview.src = data.image_url;
+        preview.classList.remove('hidden');
+        prog.set(100, 'Uploaded ✓');
+      } catch (err) { prog.set(0, `Error: ${(err as Error).message}`, true); }
+    });
+
+    // --- Tags ---
+    initTagManager({ inputId: 'new-tag-input', btnId: 'add-tag-btn', listId: 'tag-list', onMessage: msg });
+
+    // --- Submit ---
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Creating...';
+      const tagIds = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="tag_ids"]:checked')).map(cb => Number(cb.value));
+      try {
+        const res = await fetch('/api/pages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: (document.getElementById('title') as HTMLInputElement).value.trim(),
+            slug: (document.getElementById('slug') as HTMLInputElement).value.trim() || undefined,
+            content: (document.getElementById('content') as HTMLTextAreaElement).value,
+            image_key: imageKeyEl.value || null,
+            image_url: imageUrlEl.value || null,
+            status: (document.getElementById('status') as HTMLSelectElement).value,
+            tag_ids: tagIds.length > 0 ? tagIds : undefined,
+          }),
+        });
+        if (!res.ok) throw new Error((await res.json()).error || 'Create failed');
+        window.location.href = '/admin/pages';
+      } catch (err) {
+        msg((err as Error).message, true);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Page';
+      }
+    });
+  </script>
+</AdminLayout>

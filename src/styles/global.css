@@ -1,0 +1,226 @@
+/* Design System — dark-first with warm-cream light mode */
+/* Dark-first with warm-cream light mode */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+/* --- Design tokens (dark mode defaults) --- */
+@theme {
+  --color-surface: #0a0e1a;
+  --color-surface-raised: #141c30;
+  --color-surface-overlay: #1c2640;
+  --color-border: #253352;
+  --color-border-hover: #354570;
+  --color-accent: #6488ff;
+  --color-accent-hover: #8aa4ff;
+  --color-text-primary: #e6edf3;
+  --color-text-secondary: #8b95a5;
+  --color-text-muted: #5c6578;
+  --font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-family-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* --- Light mode overrides --- */
+[data-theme="light"] {
+  --color-surface: #f5f0e8;
+  --color-surface-raised: #ffffff;
+  --color-surface-overlay: #ede8df;
+  --color-border: #ddd6cb;
+  --color-border-hover: #c8bfb2;
+  --color-accent: #4a6cf7;
+  --color-accent-hover: #3a5ae0;
+  --color-text-primary: #1a1510;
+  --color-text-secondary: #6b6358;
+  --color-text-muted: #9a9085;
+}
+
+/* --- Base styles --- */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-family-base);
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+/* --- Typography --- */
+h1, h2, h3 {
+  letter-spacing: -0.03em;
+}
+
+/* --- Glass effect --- */
+.glass {
+  background: color-mix(in srgb, var(--color-surface) 75%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* --- Card system --- */
+.whisper-card {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.whisper-card:hover {
+  border-color: var(--color-accent);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="light"] .whisper-card:hover {
+  box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.1);
+}
+
+/* Card shine animation */
+.whisper-card::after {
+  content: '';
+  position: absolute;
+  inset: -100%;
+  background: linear-gradient(
+    45deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0) 45%,
+    rgba(255, 255, 255, 0.06) 50%,
+    rgba(255, 255, 255, 0) 55%,
+    transparent 100%
+  );
+  pointer-events: none;
+  transition: none;
+}
+
+.whisper-card:hover::after {
+  top: 100%;
+  left: 100%;
+  transition: all 0.7s ease;
+}
+
+/* --- Scrollbar --- */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--color-surface); }
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--color-accent); }
+
+/* --- Utilities --- */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* --- Theme toggle --- */
+.theme-toggle {
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-surface-overlay);
+}
+
+/* --- Prose: follow Whisper theme tokens --- */
+.prose {
+  --tw-prose-body: var(--color-text-secondary);
+  --tw-prose-headings: var(--color-text-primary);
+  --tw-prose-links: var(--color-accent);
+  --tw-prose-bold: var(--color-text-primary);
+  --tw-prose-code: var(--color-accent);
+  --tw-prose-quotes: var(--color-text-muted);
+  --tw-prose-quote-borders: color-mix(in srgb, var(--color-accent) 50%, transparent);
+}
+
+/* --- Masonry grid --- */
+.masonry-grid {
+  margin: 0 -6px;
+}
+
+.masonry-item {
+  width: calc(50% - 12px);
+  margin: 0 6px 12px;
+}
+
+@media (min-width: 640px) {
+  .masonry-grid { margin: 0 -8px; }
+  .masonry-item { width: calc(33.333% - 16px); margin: 0 8px 16px; }
+}
+
+@media (min-width: 1024px) {
+  .masonry-item { width: calc(25% - 16px); }
+}
+
+/* --- Entrance animation --- */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Hero entrance */
+.hero-enter {
+  opacity: 0;
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+.hero-enter-delay {
+  opacity: 0;
+  animation: fadeInUp 0.6s ease-out 0.15s forwards;
+}
+
+/* Staggered card reveal */
+.masonry-item.revealed {
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+
+/* --- Tag cloud colors (8 hues, dark-first) --- */
+.tag-color-0 { background: rgba(100, 136, 255, 0.15); color: #8aa4ff; }
+.tag-color-1 { background: rgba(168, 100, 255, 0.15); color: #c49cff; }
+.tag-color-2 { background: rgba(52, 211, 153, 0.15); color: #6ee7b7; }
+.tag-color-3 { background: rgba(251, 191, 36, 0.15); color: #fcd34d; }
+.tag-color-4 { background: rgba(248, 113, 113, 0.15); color: #fca5a5; }
+.tag-color-5 { background: rgba(56, 189, 248, 0.15); color: #7dd3fc; }
+.tag-color-6 { background: rgba(244, 114, 182, 0.15); color: #f9a8d4; }
+.tag-color-7 { background: rgba(163, 230, 53, 0.15); color: #bef264; }
+
+[data-theme="light"] .tag-color-0 { background: rgba(74, 108, 247, 0.12); color: #3b5cc7; }
+[data-theme="light"] .tag-color-1 { background: rgba(139, 70, 229, 0.12); color: #7c3aed; }
+[data-theme="light"] .tag-color-2 { background: rgba(16, 185, 129, 0.12); color: #059669; }
+[data-theme="light"] .tag-color-3 { background: rgba(217, 159, 10, 0.12); color: #b45309; }
+[data-theme="light"] .tag-color-4 { background: rgba(239, 68, 68, 0.12); color: #dc2626; }
+[data-theme="light"] .tag-color-5 { background: rgba(14, 165, 233, 0.12); color: #0284c7; }
+[data-theme="light"] .tag-color-6 { background: rgba(219, 39, 119, 0.12); color: #db2777; }
+[data-theme="light"] .tag-color-7 { background: rgba(101, 163, 13, 0.12); color: #4d7c0f; }
+
+.tag-color-0:hover, .tag-color-1:hover, .tag-color-2:hover, .tag-color-3:hover,
+.tag-color-4:hover, .tag-color-5:hover, .tag-color-6:hover, .tag-color-7:hover {
+  filter: brightness(1.2);
+}

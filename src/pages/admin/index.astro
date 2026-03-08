@@ -1,0 +1,290 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { EntryService, SettingsService, AIUsageService } from '@/lib/data';
+import { BlogPostService } from '@/lib/data/blog';
+import { AI_MODEL_CATALOG } from '@/lib/ai/models';
+
+const { env } = Astro.locals.runtime;
+const entries = new EntryService(env.DB);
+const blog = new BlogPostService(env.DB);
+const settings = new SettingsService(env.DB);
+const usage = new AIUsageService(env.DB);
+
+const [entryStats, blogStats, allSettings, aiStats, aiTotal] = await Promise.all([
+  entries.listAllFiltered({ perPage: 1 }),
+  blog.listAllFiltered({ perPage: 1 }),
+  settings.getAll(),
+  usage.getStats24h(),
+  usage.getTotal24h(),
+]);
+
+const entryTotal = entryStats.total;
+const blogTotal = blogStats.total;
+const visionModel = allSettings['ai_model_vision'] || 'auto';
+const textFast = allSettings['ai_model_fast'] || '';
+const textBalanced = allSettings['ai_model_balanced'] || '';
+const textQuality = allSettings['ai_model_quality'] || '';
+
+function modelName(id: string): string {
+  const m = AI_MODEL_CATALOG.find((c) => c.id === id);
+  return m ? m.name : id.split('/').pop() || id;
+}
+
+const hasNvidia = !!env.NVIDIA_API_KEY;
+const hasGoogle = !!env.GOOGLE_AI_KEY;
+
+// AI usage monitor computed values
+const totalErrors = aiStats.reduce((s, r) => s + r.errors, 0);
+const errorRate = aiTotal > 0 ? ((totalErrors / aiTotal) * 100).toFixed(1) : '0';
+const avgLatency = aiStats.length > 0
+  ? Math.round(aiStats.reduce((s, r) => s + r.avg_latency_ms * r.total, 0) / Math.max(aiTotal, 1))
+  : 0;
+const maxRequests = Math.max(...aiStats.map((r) => r.total), 1);
+const maxLatency = Math.max(...aiStats.map((r) => r.avg_latency_ms), 1);
+---
+
+<AdminLayout title="Dashboard">
+  <!-- Welcome -->
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold mb-1">Dashboard</h1>
+    <p class="text-gray-500 text-sm">Admin overview</p>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+    <a
+      href="/admin/new"
+      class="flex items-center gap-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg p-4 transition-colors"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+      </svg>
+      <span class="font-medium">New Gallery Entry</span>
+    </a>
+    <a
+      href="/admin/blog/new"
+      class="flex items-center gap-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg p-4 transition-colors"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+      </svg>
+      <span class="font-medium">New Blog Post</span>
+    </a>
+  </div>
+
+  <!-- Quick Start -->
+  <details class="bg-gray-900 rounded-lg mb-8 group">
+    <summary class="flex items-center justify-between p-4 cursor-pointer select-none">
+      <div class="flex items-center gap-2">
+        <span class="text-blue-400 text-sm">💡</span>
+        <span class="text-sm font-medium text-gray-300">Quick Start Guide</span>
+      </div>
+      <svg class="w-4 h-4 text-gray-500 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+      </svg>
+    </summary>
+    <div class="px-4 pb-4 text-sm text-gray-400 space-y-3">
+      <div class="flex gap-3 items-start">
+        <span class="text-blue-400 font-bold mt-0.5">1</span>
+        <div>
+          <p class="text-gray-300 font-medium">Upload artwork</p>
+          <p>Click <strong>"New Gallery Entry"</strong> above → upload an image → fill in title and prompt → hit Publish.</p>
+        </div>
+      </div>
+      <div class="flex gap-3 items-start">
+        <span class="text-blue-400 font-bold mt-0.5">2</span>
+        <div>
+          <p class="text-gray-300 font-medium">Let AI help</p>
+          <p>After uploading an image, click <strong>"Analyze with AI"</strong> to auto-generate title, description, and tags. Accept or reject each suggestion.</p>
+        </div>
+      </div>
+      <div class="flex gap-3 items-start">
+        <span class="text-blue-400 font-bold mt-0.5">3</span>
+        <div>
+          <p class="text-gray-300 font-medium">Write blog posts</p>
+          <p>Go to <strong>"New Blog Post"</strong> → write in markdown → assign topics → publish. AI can help draft content too.</p>
+        </div>
+      </div>
+      <div class="flex gap-3 items-start">
+        <span class="text-blue-400 font-bold mt-0.5">4</span>
+        <div>
+          <p class="text-gray-300 font-medium">Manage your site</p>
+          <p>Use <strong>Gallery</strong> and <strong>Blog</strong> in the nav to browse and edit. <strong>AI Settings</strong> lets you choose models and customize prompts.</p>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+    <a href="/admin/gallery" class="bg-gray-900 rounded-lg p-4 hover:bg-gray-800 transition-colors">
+      <p class="text-2xl font-bold">{entryTotal}</p>
+      <p class="text-sm text-gray-500">Gallery Entries</p>
+    </a>
+    <a href="/admin/blog" class="bg-gray-900 rounded-lg p-4 hover:bg-gray-800 transition-colors">
+      <p class="text-2xl font-bold">{blogTotal}</p>
+      <p class="text-sm text-gray-500">Blog Posts</p>
+    </a>
+    <a href="/admin/settings" class="bg-gray-900 rounded-lg p-4 hover:bg-gray-800 transition-colors">
+      <p class="text-2xl font-bold text-green-400">{hasGoogle || hasNvidia ? '●' : '○'}</p>
+      <p class="text-sm text-gray-500">AI Providers</p>
+    </a>
+    <a href="/" class="bg-gray-900 rounded-lg p-4 hover:bg-gray-800 transition-colors">
+      <p class="text-2xl font-bold text-blue-400">↗</p>
+      <p class="text-sm text-gray-500">View Site</p>
+    </a>
+  </div>
+
+  <!-- AI Configuration -->
+  <div class="bg-gray-900 rounded-lg p-5 mb-8">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">AI Configuration</h2>
+      <a href="/admin/settings" class="text-xs text-blue-400 hover:text-blue-300 transition-colors">Edit →</a>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+      <!-- Providers -->
+      <div>
+        <p class="text-gray-500 mb-2">Providers</p>
+        <div class="space-y-1.5">
+          <div class="flex items-center gap-2">
+            <span class:list={['w-2 h-2 rounded-full', hasGoogle ? 'bg-green-400' : 'bg-gray-600']}></span>
+            <span class="text-gray-300">Google AI</span>
+            <span class="text-gray-600 text-xs">{hasGoogle ? 'configured' : 'not set'}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class:list={['w-2 h-2 rounded-full', hasNvidia ? 'bg-green-400' : 'bg-gray-600']}></span>
+            <span class="text-gray-300">NVIDIA</span>
+            <span class="text-gray-600 text-xs">{hasNvidia ? 'configured' : 'not set'}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-green-400"></span>
+            <span class="text-gray-300">CF Workers AI</span>
+            <span class="text-gray-600 text-xs">always available</span>
+          </div>
+        </div>
+      </div>
+      <!-- Models -->
+      <div>
+        <p class="text-gray-500 mb-2">Active Models</p>
+        <div class="space-y-1.5">
+          {textFast && (
+            <div class="flex items-center justify-between">
+              <span class="text-gray-500">Fast</span>
+              <span class="text-gray-300 text-xs truncate max-w-[200px]">{modelName(textFast)}</span>
+            </div>
+          )}
+          {textBalanced && (
+            <div class="flex items-center justify-between">
+              <span class="text-gray-500">Balanced</span>
+              <span class="text-gray-300 text-xs truncate max-w-[200px]">{modelName(textBalanced)}</span>
+            </div>
+          )}
+          {textQuality && (
+            <div class="flex items-center justify-between">
+              <span class="text-gray-500">Quality</span>
+              <span class="text-gray-300 text-xs truncate max-w-[200px]">{modelName(textQuality)}</span>
+            </div>
+          )}
+          <div class="flex items-center justify-between">
+            <span class="text-gray-500">Vision</span>
+            <span class="text-gray-300 text-xs truncate max-w-[200px]">{modelName(visionModel)}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Usage Monitor (24h) -->
+  <div class="bg-gray-900 rounded-lg p-5 mb-8">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">AI Usage — Last 24h</h2>
+      <span class="text-xs text-gray-600">{aiStats.length} model{aiStats.length !== 1 ? 's' : ''} active</span>
+    </div>
+    {aiStats.length === 0 ? (
+      <p class="text-sm text-gray-600">No AI requests in the last 24 hours.</p>
+    ) : (
+      <div class="space-y-5">
+        {/* Summary cards */}
+        <div class="grid grid-cols-3 gap-3">
+          <div class="bg-gray-800 rounded-lg p-3 text-center">
+            <p class="text-2xl font-bold">{aiTotal}</p>
+            <p class="text-[11px] text-gray-500 mt-0.5">Requests</p>
+          </div>
+          <div class="bg-gray-800 rounded-lg p-3 text-center">
+            <p class:list={['text-2xl font-bold', totalErrors > 0 ? 'text-red-400' : 'text-gray-500']}>
+              {totalErrors > 0 ? `${errorRate}%` : '0'}
+            </p>
+            <p class="text-[11px] text-gray-500 mt-0.5">{totalErrors > 0 ? `Error Rate (${totalErrors})` : 'Errors'}</p>
+          </div>
+          <div class="bg-gray-800 rounded-lg p-3 text-center">
+            <p class="text-2xl font-bold text-blue-400">
+              {avgLatency > 1000 ? `${(avgLatency / 1000).toFixed(1)}s` : `${avgLatency}ms`}
+            </p>
+            <p class="text-[11px] text-gray-500 mt-0.5">Avg Latency</p>
+          </div>
+        </div>
+
+        {/* Per-model breakdown with visual bars */}
+        <div class="space-y-3">
+          {aiStats.map((row) => {
+            const pct = maxRequests > 0 ? Math.round((row.total / maxRequests) * 100) : 0;
+            const latPct = maxLatency > 0 ? Math.round((row.avg_latency_ms / maxLatency) * 100) : 0;
+            const latLabel = row.avg_latency_ms > 1000
+              ? `${(row.avg_latency_ms / 1000).toFixed(1)}s`
+              : `${row.avg_latency_ms}ms`;
+            const providerColor = row.provider === 'google' ? 'bg-blue-500' :
+                                  row.provider === 'nvidia' ? 'bg-green-500' : 'bg-gray-500';
+            const providerBadge = row.provider === 'google' ? 'bg-blue-900/40 text-blue-300' :
+                                  row.provider === 'nvidia' ? 'bg-green-900/40 text-green-300' :
+                                  'bg-gray-800 text-gray-400';
+            return (
+              <div class="bg-gray-800/50 rounded-lg p-3">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="text-sm text-gray-200 font-medium truncate">{modelName(row.model)}</span>
+                    <span class:list={['text-[10px] px-1.5 py-0.5 rounded shrink-0', providerBadge]}>{row.provider}</span>
+                  </div>
+                  <div class="flex items-center gap-3 shrink-0 text-xs">
+                    <span class="text-gray-300">{row.total} req</span>
+                    {row.errors > 0 && <span class="text-red-400">{row.errors} err</span>}
+                  </div>
+                </div>
+                {/* Request volume bar */}
+                <div class="flex items-center gap-2 mb-1.5">
+                  <span class="text-[10px] text-gray-600 w-12 shrink-0">Volume</span>
+                  <div class="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div class:list={['h-full rounded-full transition-all', providerColor]} style={`width:${pct}%`} />
+                  </div>
+                </div>
+                {/* Latency bar */}
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] text-gray-600 w-12 shrink-0">Latency</span>
+                  <div class="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div class="h-full rounded-full bg-amber-500/70 transition-all" style={`width:${latPct}%`} />
+                  </div>
+                  <span class="text-[10px] text-gray-500 w-10 text-right shrink-0">{latLabel}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    )}
+  </div>
+
+  <!-- Quick Links -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <a href="/admin/gallery" class="text-center bg-gray-900 hover:bg-gray-800 rounded-lg p-4 transition-colors">
+      <p class="text-sm text-gray-300">Gallery</p>
+    </a>
+    <a href="/admin/blog" class="text-center bg-gray-900 hover:bg-gray-800 rounded-lg p-4 transition-colors">
+      <p class="text-sm text-gray-300">Blog</p>
+    </a>
+    <a href="/admin/pages" class="text-center bg-gray-900 hover:bg-gray-800 rounded-lg p-4 transition-colors">
+      <p class="text-sm text-gray-300">Pages</p>
+    </a>
+    <a href="/admin/migrations" class="text-center bg-gray-900 hover:bg-gray-800 rounded-lg p-4 transition-colors">
+      <p class="text-sm text-gray-300">DB Management</p>
+    </a>
+  </div>
+</AdminLayout>

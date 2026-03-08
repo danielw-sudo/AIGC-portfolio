@@ -1,0 +1,203 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { PageService, TaxonomyService } from '@/lib/data';
+
+const { env } = Astro.locals.runtime;
+const id = Number(Astro.params.id);
+if (!id) return Astro.redirect('/admin/pages');
+
+const pageService = new PageService(env.DB);
+const page = await pageService.getById(id);
+if (!page) return Astro.redirect('/admin/pages');
+
+const taxonomy = new TaxonomyService(env.DB);
+const allTags = await taxonomy.getAllTags();
+const pageTagIds = new Set(page.tags?.map((t) => t.id) ?? []);
+---
+
+<AdminLayout title={`Edit: ${page.title || page.slug}`}>
+  <div class="max-w-3xl">
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold">Edit Page</h1>
+      <button id="delete-btn"
+        class="text-sm text-red-400 hover:text-red-300 border border-red-800 hover:border-red-600
+               px-3 py-1.5 rounded-lg transition-colors">
+        Delete
+      </button>
+    </div>
+    <div id="message" class="hidden mb-4 px-4 py-2 rounded-lg text-sm"></div>
+
+    <form id="page-form" data-page-id={id} class="space-y-4">
+      <div>
+        <label for="title" class="block text-sm text-gray-400 mb-1">Title</label>
+        <input type="text" id="title" value={page.title} required
+          class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white
+                 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+      </div>
+
+      <!-- Image -->
+      <div>
+        <label class="block text-sm text-gray-400 mb-2">Cover Image</label>
+        {page.image_url && (
+          <div id="current-image" class="mb-3 relative inline-block">
+            <img src={page.image_url} alt="" class="max-h-48 rounded-lg border border-gray-700" />
+            <button type="button" id="remove-image-btn"
+              class="absolute -top-2 -right-2 w-6 h-6 bg-red-600 hover:bg-red-500 text-white
+                     rounded-full text-xs flex items-center justify-center">×</button>
+          </div>
+        )}
+        <div id="drop-zone" class="border-2 border-dashed border-gray-700 rounded-lg p-4 text-center hover:border-blue-500 transition-colors cursor-pointer">
+          <input type="file" id="image-input" accept="image/*" class="hidden" />
+          <p class="text-gray-400 text-sm">Drop an image or click to upload</p>
+        </div>
+        <div id="upload-progress" class="hidden mt-2">
+          <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
+            <div id="progress-bar" class="h-full bg-blue-500 transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <p id="upload-status" class="text-xs text-gray-500 mt-1"></p>
+        </div>
+        <input type="hidden" id="image-key" value={page.image_key || ''} />
+        <input type="hidden" id="image-url" value={page.image_url || ''} />
+      </div>
+
+      <!-- Tags -->
+      <div>
+        <label class="block text-sm text-gray-400 mb-2">Tags</label>
+        <div class="flex gap-2 mb-3">
+          <input type="text" id="new-tag-input" placeholder="Add a tag..."
+            class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm
+                   focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+          <button type="button" id="add-tag-btn"
+            class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
+            Add
+          </button>
+        </div>
+        <div id="tag-list" class="flex flex-wrap gap-2">
+          {allTags.map((t) => (
+            <label class="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-800 rounded-full text-sm
+                          hover:bg-gray-700 cursor-pointer transition-colors">
+              <input type="checkbox" name="tag_ids" value={t.id}
+                checked={pageTagIds.has(t.id)} class="accent-blue-500" />
+              <span>{t.title}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label for="content" class="block text-sm text-gray-400 mb-1">Content (Markdown)</label>
+        <textarea id="content" rows="16"
+          class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-mono text-sm
+                 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        >{page.content}</textarea>
+      </div>
+      <div>
+        <label for="status" class="block text-sm text-gray-400 mb-1">Status</label>
+        <select id="status"
+          class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white
+                 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+          <option value="draft" selected={page.status === 'draft'}>Draft</option>
+          <option value="published" selected={page.status === 'published'}>Published</option>
+        </select>
+      </div>
+      <p class="text-xs text-gray-600">Slug: /{page.slug} · Updated: {page.updated_at}</p>
+      <div class="flex gap-3 pt-2">
+        <button type="submit" id="save-btn"
+          class="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-6 rounded-lg transition-colors">
+          Save
+        </button>
+        <a href={`/${page.slug}`} target="_blank" class="text-gray-400 hover:text-white py-2 px-4 transition-colors">Preview ↗</a>
+        <a href="/admin/pages" class="text-gray-400 hover:text-white py-2 px-4 transition-colors">Back</a>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    import { showMessage, setupDropZone, makeProg } from '@/lib/admin-ui';
+    import { uploadFile } from '@/lib/admin-ui';
+    import { initTagManager } from '@/lib/admin-ui';
+
+    const form = document.getElementById('page-form') as HTMLFormElement;
+    const pageId = form.dataset.pageId!;
+    const saveBtn = document.getElementById('save-btn') as HTMLButtonElement;
+    const deleteBtn = document.getElementById('delete-btn') as HTMLButtonElement;
+    const msgEl = document.getElementById('message')!;
+    const msg = (text: string, isError: boolean) => showMessage(msgEl, text, isError);
+    const imageKeyEl = document.getElementById('image-key') as HTMLInputElement;
+    const imageUrlEl = document.getElementById('image-url') as HTMLInputElement;
+
+    // --- Image upload ---
+    const prog = makeProg('progress-bar', 'upload-status', 'upload-progress');
+    setupDropZone('drop-zone', 'image-input', async (file) => {
+      prog.show('Uploading...', 30);
+      try {
+        prog.set(60);
+        const data = await uploadFile(file);
+        imageKeyEl.value = data.image_key;
+        imageUrlEl.value = data.image_url;
+        prog.set(100, 'Uploaded ✓');
+        // Update preview
+        const currentImg = document.getElementById('current-image');
+        if (currentImg) {
+          (currentImg.querySelector('img') as HTMLImageElement).src = data.image_url;
+        } else {
+          const div = document.createElement('div');
+          div.id = 'current-image';
+          div.className = 'mb-3 relative inline-block';
+          div.innerHTML = `<img src="${data.image_url}" alt="" class="max-h-48 rounded-lg border border-gray-700" /><button type="button" id="remove-image-btn" class="absolute -top-2 -right-2 w-6 h-6 bg-red-600 hover:bg-red-500 text-white rounded-full text-xs flex items-center justify-center">×</button>`;
+          const dropZone = document.getElementById('drop-zone')!;
+          dropZone.parentElement!.insertBefore(div, dropZone);
+          div.querySelector('#remove-image-btn')!.addEventListener('click', clearImage);
+        }
+      } catch (err) { prog.set(0, `Error: ${(err as Error).message}`, true); }
+    });
+
+    // Remove image
+    function clearImage() {
+      imageKeyEl.value = '';
+      imageUrlEl.value = '';
+      document.getElementById('current-image')?.remove();
+    }
+    document.getElementById('remove-image-btn')?.addEventListener('click', clearImage);
+
+    // --- Tags ---
+    initTagManager({ inputId: 'new-tag-input', btnId: 'add-tag-btn', listId: 'tag-list', onMessage: msg });
+
+    // --- Save ---
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+      const tagIds = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="tag_ids"]:checked')).map(cb => Number(cb.value));
+      try {
+        const res = await fetch(`/api/pages/${pageId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: (document.getElementById('title') as HTMLInputElement).value.trim(),
+            content: (document.getElementById('content') as HTMLTextAreaElement).value,
+            image_key: imageKeyEl.value || null,
+            image_url: imageUrlEl.value || null,
+            status: (document.getElementById('status') as HTMLSelectElement).value,
+            tag_ids: tagIds,
+          }),
+        });
+        if (!res.ok) throw new Error((await res.json()).error || 'Update failed');
+        msg('Saved ✓', false);
+      } catch (err) { msg((err as Error).message, true); }
+      finally { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
+    });
+
+    // --- Delete ---
+    deleteBtn.addEventListener('click', async () => {
+      if (!confirm('Delete this page? This cannot be undone.')) return;
+      deleteBtn.disabled = true;
+      deleteBtn.textContent = 'Deleting...';
+      try {
+        const res = await fetch(`/api/pages/${pageId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Delete failed');
+        window.location.href = '/admin/pages';
+      } catch (err) { msg((err as Error).message, true); deleteBtn.disabled = false; deleteBtn.textContent = 'Delete'; }
+    });
+  </script>
+</AdminLayout>

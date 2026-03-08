@@ -1,0 +1,37 @@
+---
+import ThemeToggle from '@/components/ThemeToggle.tsx';
+import { SettingsService } from '@/lib/data';
+
+const { pathname } = Astro.url;
+const { env } = Astro.locals.runtime;
+const settings = new SettingsService(env.DB);
+const siteConfig = await settings.getSiteConfig();
+
+const defaultLinks = [
+  { text: 'Gallery', url: '/gallery' },
+  { text: 'Blog', url: '/blog' },
+];
+const navLinks = siteConfig.headerLinks.length > 0 ? siteConfig.headerLinks : defaultLinks;
+---
+
+<header class="sticky top-0 z-50 border-b border-border glass">
+  <div class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+    <a href="/" class="text-lg font-bold tracking-tight text-text-primary">
+      AIGC<span class="text-accent">Portfolio</span>
+    </a>
+    <nav class="flex items-center gap-4 text-sm">
+      {navLinks.map((link) => {
+        const isActive = pathname.startsWith(link.url);
+        return (
+          <a
+            href={link.url}
+            class:list={['transition-colors', isActive ? 'text-accent' : 'text-text-secondary hover:text-text-primary']}
+          >
+            {link.text}
+          </a>
+        );
+      })}
+      <ThemeToggle client:load />
+    </nav>
+  </div>
+</header>

@@ -1,0 +1,79 @@
+---
+import MainLayout from '@/layouts/MainLayout.astro';
+import { BlogPostService } from '@/lib/data/blog';
+import { marked } from 'marked';
+
+const { env } = Astro.locals.runtime;
+const { slug } = Astro.params;
+
+if (!slug) return Astro.redirect('/blog');
+
+const svc = new BlogPostService(env.DB);
+const post = await svc.getBySlug(slug);
+
+if (!post || post.status !== 'published') return Astro.redirect('/blog');
+
+const bodyHtml = post.body ? await marked.parse(post.body) : '';
+const date = post.created_at?.split(' ')[0] ?? '';
+const R2 = import.meta.env.R2_PUBLIC_URL || '';
+const coverUrl = post.image_url || (post.image_key ? `${R2}/${post.image_key}` : null);
+const desc = post.summary?.substring(0, 160) || post.title;
+---
+
+<MainLayout title={post.title} description={desc} ogImage={coverUrl || undefined} ogType="article" publishedTime={post.created_at?.split(' ')[0]} modifiedTime={post.updated_at?.split(' ')[0]}>
+  <article class="max-w-3xl mx-auto px-4 pt-8 sm:pt-12 pb-16">
+    <a href="/blog" class="text-sm text-text-muted hover:text-text-secondary transition-colors">← Blog</a>
+
+    {coverUrl && (
+      <img
+        src={coverUrl}
+        alt={post.title}
+        class="w-full rounded-xl border border-border mt-6 mb-6"
+      />
+    )}
+
+    {post.topics && post.topics.length > 0 && (
+      <div class="flex flex-wrap gap-2 mt-4 mb-4">
+        {post.topics.map((t, i) => (
+          <a
+            href={`/blog/topics/${t.slug}`}
+            class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs bg-surface-raised hover:bg-surface-overlay border border-border transition-colors"
+          >
+            <span class={`w-1.5 h-1.5 rounded-full tag-color-${i % 8}`} />
+            <span class="text-text-primary">{t.title}</span>
+          </a>
+        ))}
+      </div>
+    )}
+
+    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-3">{post.title}</h1>
+
+    {post.summary && (
+      <p class="text-text-secondary text-base mb-4">{post.summary}</p>
+    )}
+
+    <div class="text-sm text-text-muted mb-8 flex items-center gap-4">
+      <span>{date}</span>
+      <button id="share-btn" class="text-accent hover:text-accent-hover transition-colors">Share</button>
+    </div>
+
+    <div
+      class="prose prose-sm sm:prose-base max-w-none prose-code:bg-surface-raised prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded"
+      set:html={bodyHtml}
+    />
+
+    <div class="mt-12 pt-6 border-t border-border">
+      <a href="/blog" class="text-sm text-text-muted hover:text-accent transition-colors">← Back to blog</a>
+    </div>
+  </article>
+
+  <script is:inline>
+    var shareBtn = document.getElementById('share-btn');
+    if (shareBtn) {
+      shareBtn.addEventListener('click', async function() {
+        try { await navigator.clipboard.writeText(window.location.href); shareBtn.textContent = 'Link copied!'; setTimeout(function() { shareBtn.textContent = 'Share'; }, 2000); }
+        catch(e) { shareBtn.textContent = 'Failed'; setTimeout(function() { shareBtn.textContent = 'Share'; }, 2000); }
+      });
+    }
+  </script>
+</MainLayout>

@@ -1,0 +1,36 @@
+{
+  "name": "aigc-portfolio",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler types && astro dev",
+    "build": "wrangler types && astro build",
+    "preview": "wrangler types && astro preview",
+    "deploy": "npm run build && wrangler deploy",
+    "db:schema": "wrangler d1 execute YOUR_DB_NAME --local --file=schema.sql",
+    "db:schema:remote": "wrangler d1 execute YOUR_DB_NAME --remote --file=schema.sql",
+    "db:seed": "wrangler d1 execute YOUR_DB_NAME --local --file=migrations/0002_seed_models.sql",
+    "db:seed:remote": "wrangler d1 execute YOUR_DB_NAME --remote --file=migrations/0002_seed_models.sql"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^12.6.0",
+    "@astrojs/react": "^4.4.0",
+    "@tailwindcss/typography": "^0.5.19",
+    "@tailwindcss/vite": "^4.1.0",
+    "astro": "^5.17.0",
+    "clsx": "^2.1.0",
+    "imagesloaded": "^5.0.0",
+    "marked": "^17.0.3",
+    "masonry-layout": "^4.2.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tailwindcss": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "typescript": "^5.7.0",
+    "wrangler": "^4.0.0"
+  }
+}

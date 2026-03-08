@@ -1,0 +1,115 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { TaxonomyService } from '@/lib/data';
+
+const { env } = Astro.locals.runtime;
+const taxonomy = new TaxonomyService(env.DB);
+const models = await taxonomy.getModelsWithCount();
+---
+
+<AdminLayout title="Models">
+  <div class="max-w-3xl">
+    <h1 class="text-2xl font-bold mb-6">Models</h1>
+
+    <div id="message" class="hidden mb-4 px-4 py-2 rounded-lg text-sm"></div>
+
+    <!-- Inline create form -->
+    <form id="create-form" class="flex flex-col sm:flex-row gap-2 mb-6">
+      <input
+        type="text"
+        id="new-title"
+        placeholder="Model name"
+        required
+        class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white
+               focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+      />
+      <input
+        type="text"
+        id="new-provider"
+        placeholder="Provider (optional)"
+        class="w-full sm:w-40 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white
+               focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+      />
+      <button
+        type="submit"
+        class="bg-blue-600 hover:bg-blue-500 text-white font-medium px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+      >
+        + Add
+      </button>
+    </form>
+
+    <!-- Models list -->
+    <div id="models-list" class="space-y-2">
+      {models.map((m) => (
+        <div class="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 group" data-model-id={m.id}>
+          <div>
+            <span class="font-medium text-white">{m.title}</span>
+            {m.provider && <span class="text-gray-500 text-sm ml-2">by {m.provider}</span>}
+            <span class="text-gray-600 text-xs ml-2">({m.entry_count} entries)</span>
+          </div>
+          <div class="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+            <a href={`/admin/models/${m.id}`} class="text-sm text-blue-400 hover:text-blue-300">Edit</a>
+            <button class="delete-model text-sm text-red-400 hover:text-red-300" data-model-id={m.id} data-count={m.entry_count}>
+              Delete
+            </button>
+          </div>
+        </div>
+      ))}
+      {models.length === 0 && (
+        <p class="text-gray-500 text-center py-8">No models yet</p>
+      )}
+    </div>
+  </div>
+
+  <script>
+    const createForm = document.getElementById('create-form') as HTMLFormElement;
+    const modelsList = document.getElementById('models-list')!;
+    const msgEl = document.getElementById('message')!;
+
+    function showMessage(text: string, isError: boolean) {
+      msgEl.textContent = text;
+      msgEl.className = `mb-4 px-4 py-2 rounded-lg text-sm ${isError ? 'bg-red-900/50 text-red-300' : 'bg-green-900/50 text-green-300'}`;
+    }
+
+    createForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = (document.getElementById('new-title') as HTMLInputElement).value.trim();
+      const provider = (document.getElementById('new-provider') as HTMLInputElement).value.trim();
+      if (!title) return;
+
+      try {
+        const res = await fetch('/api/models', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, provider: provider || undefined }),
+        });
+        if (!res.ok) throw new Error((await res.json()).error || 'Failed');
+        window.location.reload();
+      } catch (err) {
+        showMessage((err as Error).message, true);
+      }
+    });
+
+    modelsList.addEventListener('click', async (e) => {
+      const btn = (e.target as HTMLElement).closest('.delete-model') as HTMLElement | null;
+      if (!btn) return;
+
+      const id = btn.dataset.modelId;
+      const count = Number(btn.dataset.count);
+      const msg = count > 0
+        ? `This model has ${count} entries. They will be unlinked. Continue?`
+        : 'Delete this model?';
+
+      if (!confirm(msg)) return;
+
+      try {
+        const res = await fetch(`/api/models/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Delete failed');
+        btn.closest('[data-model-id]')?.remove();
+        showMessage('Deleted ✓', false);
+      } catch (err) {
+        showMessage((err as Error).message, true);
+      }
+    });
+  </script>
+</AdminLayout>

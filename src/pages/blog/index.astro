@@ -1,0 +1,66 @@
+---
+import MainLayout from '@/layouts/MainLayout.astro';
+import BlogCard from '@/components/BlogCard.astro';
+import Pagination from '@/components/Pagination.astro';
+import { BlogPostService, BlogTopicService } from '@/lib/data/blog';
+import { SettingsService } from '@/lib/data';
+
+const { env } = Astro.locals.runtime;
+const page = Number(Astro.url.searchParams.get('page')) || 1;
+
+const posts = new BlogPostService(env.DB);
+const topics = new BlogTopicService(env.DB);
+const settings = new SettingsService(env.DB);
+
+const [result, allTopics, metaDesc] = await Promise.all([
+  posts.listPublished(page, 12),
+  topics.getWithCount(),
+  settings.getMetaDesc('blog', 'Notes on tools, process, and making things I love.'),
+]);
+
+const activeTopics = allTopics.filter((t) => t.post_count > 0);
+---
+
+<MainLayout title="Blog" description={metaDesc}>
+  <section class="max-w-5xl mx-auto px-4 pt-8 sm:pt-12 pb-6">
+    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-2">Blog</h1>
+    <p class="text-text-muted text-sm mb-6">Thoughts on AI art, tools, and creative process.</p>
+
+    {activeTopics.length > 0 && (
+      <div class="flex flex-wrap gap-2 mb-8">
+        {activeTopics.map((t, i) => (
+          <a
+            href={`/blog/topics/${t.slug}`}
+            class:list={[
+              'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors',
+              'bg-surface-raised hover:bg-surface-overlay border border-border',
+            ]}
+          >
+            <span class={`w-2 h-2 rounded-full tag-color-${i % 8}`} />
+            <span class="text-text-primary">{t.title}</span>
+            <span class="text-text-muted text-xs">{t.post_count}</span>
+          </a>
+        ))}
+        <a
+          href="/blog/topics"
+          class="inline-flex items-center text-sm text-text-muted hover:text-accent transition-colors px-2 py-1.5"
+        >
+          All topics →
+        </a>
+      </div>
+    )}
+  </section>
+
+  <section class="max-w-5xl mx-auto px-4 pb-16">
+    {result.data.length === 0 ? (
+      <p class="text-center text-text-muted py-16">No blog posts yet.</p>
+    ) : (
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {result.data.map((post) => (
+          <BlogCard post={post} />
+        ))}
+      </div>
+    )}
+    <Pagination page={page} totalPages={result.total_pages} basePath="/blog" />
+  </section>
+</MainLayout>

@@ -1,0 +1,61 @@
+---
+import type { Entry } from '@/lib/core/types';
+
+interface Props {
+  entry: Entry;
+}
+
+const { entry } = Astro.props;
+const rawDesc = entry.description?.replace(/[#*_\[\]()>`~]+/g, '').replace(/\s+/g, ' ').trim();
+const snippet = (rawDesc || entry.prompt || '').substring(0, 120);
+const hasDims = !!(entry.width && entry.height);
+const aspectStyle = hasDims ? `aspect-ratio: ${entry.width}/${entry.height}` : '';
+---
+
+<a href={`/${entry.slug}`} class="group block whisper-card">
+  <div class="relative overflow-hidden rounded-t-[12px]" style={aspectStyle}>
+    <img
+      src={entry.image_url}
+      alt={entry.title}
+      width={entry.width || undefined}
+      height={entry.height || undefined}
+      loading="lazy"
+      class:list={[
+        'w-full transition-transform duration-300 group-hover:scale-105',
+        hasDims ? 'h-full object-cover' : 'h-auto block',
+      ]}
+      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+    />
+    <div class="hidden items-center justify-center w-full h-full text-4xl text-text-muted absolute inset-0 bg-surface-raised">
+      {entry.title.charAt(0).toUpperCase()}
+    </div>
+
+    {/* Model badge */}
+    {entry.model && (
+      <span class="absolute top-2 right-2 z-10 text-[9px] uppercase tracking-wider
+                    bg-black/60 text-white/90 px-2 py-0.5 rounded-full backdrop-blur-sm">
+        {entry.model.title}
+      </span>
+    )}
+
+    {/* Description overlay on hover (fallback to prompt) */}
+    {snippet && (
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent
+                  opacity-0 group-hover:opacity-100 transition-opacity duration-300
+                  flex items-end p-3">
+        <p class="text-[11px] text-white/80 leading-tight line-clamp-3">
+          {snippet}
+        </p>
+      </div>
+    )}
+  </div>
+
+  <div class="px-3 py-2">
+    <div class="flex items-center gap-1.5">
+      {entry.featured && <span class="text-yellow-400 text-[10px]">★</span>}
+      <p class="text-[13px] sm:text-sm font-medium text-text-primary truncate">
+        {entry.title}
+      </p>
+    </div>
+  </div>
+</a>

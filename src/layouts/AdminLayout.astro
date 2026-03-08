@@ -1,0 +1,177 @@
+---
+import '@/styles/global.css';
+
+const { title = 'Admin' } = Astro.props;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title} — Admin</title>
+    <script is:inline>
+      (function(){var t=localStorage.getItem('aw-admin-theme')||'dark';document.documentElement.setAttribute('data-theme',t)})();
+    </script>
+  </head>
+  <body class="admin-body min-h-screen">
+    <nav class="admin-nav border-b sticky top-0 z-50">
+      <div class="max-w-6xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between">
+        <a href="/admin" class="text-lg font-bold admin-title">aw<span class="text-blue-400">:</span>admin</a>
+        <div class="hidden sm:flex items-center gap-4 text-sm">
+          <a href="/admin/gallery" class="admin-link">Gallery</a>
+          <a href="/admin/blog" class="admin-link">Blog</a>
+          <a href="/admin/pages" class="admin-link">Pages</a>
+          <span class="admin-nav-sep w-px h-4 bg-gray-700 mx-0.5"></span>
+          <a href="/admin/settings" class="admin-link">AI Settings</a>
+          <a href="/admin/site-config" class="admin-link">Site Config</a>
+          <a href="/admin/migrations" class="admin-link">DB Management</a>
+          <button id="theme-toggle" type="button" class="admin-theme-btn ml-1" aria-label="Toggle theme">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle class="sun-icon" cx="12" cy="12" r="4" />
+              <path class="sun-icon" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32 1.41-1.41" />
+              <path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+          </button>
+          <a href="/" class="admin-link-muted ml-2">View Site →</a>
+        </div>
+        <div class="sm:hidden flex items-center gap-1">
+          <button id="theme-toggle-m" type="button" class="admin-theme-btn" aria-label="Toggle theme">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle class="sun-icon" cx="12" cy="12" r="4" />
+              <path class="sun-icon" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32 1.41-1.41" />
+              <path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+          </button>
+          <button id="mobile-menu-btn" class="admin-link p-1" aria-label="Menu">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div id="mobile-menu" class="hidden sm:hidden border-t border-gray-800 px-3 pb-3 pt-2 space-y-1 text-sm">
+        <a href="/admin/gallery" class="block py-2 admin-link">Gallery</a>
+        <a href="/admin/blog" class="block py-2 admin-link">Blog</a>
+        <a href="/admin/pages" class="block py-2 admin-link">Pages</a>
+        <div class="border-t border-gray-800 my-1"></div>
+        <a href="/admin/settings" class="block py-2 admin-link">AI Settings</a>
+        <a href="/admin/site-config" class="block py-2 admin-link">Site Config</a>
+        <a href="/admin/migrations" class="block py-2 admin-link">DB Management</a>
+        <a href="/" class="block py-2 admin-link-muted">View Site →</a>
+      </div>
+    </nav>
+    <main class="max-w-6xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
+      <slot />
+    </main>
+    <footer class="admin-footer border-t mt-12 py-6 text-center text-xs">
+      <p>&copy; {new Date().getFullYear()} AIGC Portfolio &middot; <a href="/" class="admin-link-muted hover:underline">View Site</a></p>
+    </footer>
+    <script>
+      document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
+        document.getElementById('mobile-menu')?.classList.toggle('hidden');
+      });
+      function toggleAdminTheme() {
+        const html = document.documentElement;
+        const next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        html.setAttribute('data-theme', next);
+        localStorage.setItem('aw-admin-theme', next);
+        applyIcons(next);
+      }
+      function applyIcons(theme: string) {
+        const isLight = theme === 'light';
+        document.querySelectorAll('.sun-icon').forEach(el => (el as SVGElement).style.display = isLight ? 'none' : '');
+        document.querySelectorAll('.moon-icon').forEach(el => (el as SVGElement).style.display = isLight ? '' : 'none');
+      }
+      applyIcons(localStorage.getItem('aw-admin-theme') || 'dark');
+      document.getElementById('theme-toggle')?.addEventListener('click', toggleAdminTheme);
+      document.getElementById('theme-toggle-m')?.addEventListener('click', toggleAdminTheme);
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  /* === Admin Theme System === */
+  .admin-body { background: #030712; color: #f3f4f6; transition: background-color 0.2s, color 0.2s; }
+  .admin-nav { background: rgba(3, 7, 18, 0.8); border-color: #1f2937; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .admin-title { color: #fff; }
+  .admin-link { color: #9ca3af; transition: color 0.15s; }
+  .admin-link:hover { color: #fff; }
+  .admin-link-muted { color: #6b7280; transition: color 0.15s; }
+  .admin-link-muted:hover { color: #d1d5db; }
+  .admin-theme-btn { padding: 6px; border-radius: 6px; color: #9ca3af; cursor: pointer; background: none; border: none; transition: color 0.15s; }
+  .admin-theme-btn:hover { color: #fff; }
+
+  /* === Light mode === */
+  html[data-theme="light"] .admin-body { background: #f8fafc; color: #1e293b; }
+  html[data-theme="light"] .admin-nav { background: rgba(248, 250, 252, 0.9); border-color: #e2e8f0; }
+  html[data-theme="light"] .admin-title { color: #0f172a; }
+  html[data-theme="light"] .admin-link { color: #64748b; }
+  html[data-theme="light"] .admin-link:hover { color: #0f172a; }
+  html[data-theme="light"] .admin-link-muted { color: #94a3b8; }
+  html[data-theme="light"] .admin-link-muted:hover { color: #475569; }
+  html[data-theme="light"] .admin-theme-btn { color: #64748b; }
+  html[data-theme="light"] .admin-theme-btn:hover { color: #0f172a; }
+
+  /* Tailwind utility overrides for admin light mode */
+  html[data-theme="light"] .admin-body .bg-gray-950 { background-color: #f8fafc; }
+  html[data-theme="light"] .admin-body .bg-gray-900 { background-color: #fff; }
+  html[data-theme="light"] .admin-body .bg-gray-800 { background-color: #f1f5f9; }
+  html[data-theme="light"] .admin-body .text-white { color: #1e293b; }
+  html[data-theme="light"] .admin-body .text-gray-100 { color: #1e293b; }
+  html[data-theme="light"] .admin-body .text-gray-300 { color: #475569; }
+  html[data-theme="light"] .admin-body .text-gray-400 { color: #64748b; }
+  html[data-theme="light"] .admin-body .text-gray-500 { color: #64748b; }
+  html[data-theme="light"] .admin-body .text-gray-600 { color: #94a3b8; }
+  /* Keep white text on colored-bg buttons */
+  html[data-theme="light"] .admin-body .bg-blue-600.text-white { color: #fff; }
+  html[data-theme="light"] .admin-body .bg-purple-600.text-white { color: #fff; }
+  html[data-theme="light"] .admin-body .bg-emerald-600.text-white { color: #fff; }
+  html[data-theme="light"] .admin-body .bg-red-600.text-white { color: #fff; }
+  html[data-theme="light"] .admin-body .bg-gray-700 { background-color: #e2e8f0; }
+  html[data-theme="light"] .admin-body .bg-gray-700.text-white { color: #475569; }
+  html[data-theme="light"] .admin-body .hover\:bg-gray-600:hover { background-color: #cbd5e1; }
+  html[data-theme="light"] .admin-body .border-gray-700 { border-color: #e2e8f0; }
+  html[data-theme="light"] .admin-body .border-gray-800 { border-color: #e2e8f0; }
+  html[data-theme="light"] .admin-body .hover\:text-white:hover { color: #0f172a; }
+  html[data-theme="light"] .admin-body .hover\:bg-gray-700:hover { background-color: #e2e8f0; }
+  html[data-theme="light"] .admin-body .border-dashed { border-color: #cbd5e1; }
+
+  /* Form elements */
+  html[data-theme="light"] .admin-body input:not([type="checkbox"]):not([type="file"]):not([type="hidden"]),
+  html[data-theme="light"] .admin-body textarea,
+  html[data-theme="light"] .admin-body select { background-color: #fff; border-color: #cbd5e1; color: #1e293b; }
+
+  /* Status colors */
+  html[data-theme="light"] .admin-body .text-red-400 { color: #dc2626; }
+  html[data-theme="light"] .admin-body .text-red-300 { color: #dc2626; }
+  html[data-theme="light"] .admin-body .text-green-300 { color: #16a34a; }
+  html[data-theme="light"] .admin-body .hover\:text-red-300:hover { color: #b91c1c; }
+  /* Alert banners */
+  html[data-theme="light"] .admin-body .bg-green-900\/50 { background-color: #dcfce7; }
+  html[data-theme="light"] .admin-body .bg-red-900\/50 { background-color: #fee2e2; }
+  html[data-theme="light"] .admin-body .border-red-800 { border-color: #fca5a5; }
+  html[data-theme="light"] .admin-body .hover\:border-red-600:hover { border-color: #dc2626; }
+  /* Blog topic pills (blue) */
+  html[data-theme="light"] .admin-body .bg-blue-900\/40 { background-color: #dbeafe; }
+  html[data-theme="light"] .admin-body .text-blue-300 { color: #2563eb; }
+  html[data-theme="light"] .admin-body .text-blue-400 { color: #2563eb; }
+  /* Featured star (yellow) */
+  html[data-theme="light"] .admin-body .text-yellow-400 { color: #d97706; }
+  /* Settings help text (purple) */
+  html[data-theme="light"] .admin-body .text-purple-400 { color: #7c3aed; }
+  /* AI applied checkmark + published badge text (green) */
+  html[data-theme="light"] .admin-body .text-green-400 { color: #16a34a; }
+  /* Nav separator */
+  html[data-theme="light"] .admin-nav-sep { background-color: #cbd5e1; }
+  /* Footer */
+  .admin-footer { border-color: #1f2937; color: #6b7280; }
+  html[data-theme="light"] .admin-footer { border-color: #e2e8f0; color: #94a3b8; }
+
+  /* AI suggestion panel entrance */
+  @keyframes ai-slide-in {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .ai-panel-enter:not(.hidden) { animation: ai-slide-in 0.25s ease-out; }
+</style>

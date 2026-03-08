@@ -1,0 +1,38 @@
+---
+interface Props {
+  page: number;
+  totalPages: number;
+  basePath: string;
+}
+
+const { page, totalPages, basePath } = Astro.props;
+
+function pageUrl(p: number): string {
+  const sep = basePath.includes('?') ? '&' : '?';
+  return p === 1 ? basePath.split('?')[0] + (basePath.includes('?') ? '?' + basePath.split('?')[1] : '') : `${basePath}${sep}page=${p}`;
+}
+---
+
+{totalPages > 1 && (
+  <nav class="flex items-center justify-center gap-2 mt-10">
+    {page > 1 && (
+      <a
+        href={pageUrl(page - 1)}
+        class="px-3 py-1.5 text-sm bg-surface-raised hover:bg-surface-overlay rounded-lg transition-colors"
+      >
+        ← Prev
+      </a>
+    )}
+    <span class="text-sm text-text-muted px-2">
+      {page} / {totalPages}
+    </span>
+    {page < totalPages && (
+      <a
+        href={pageUrl(page + 1)}
+        class="px-3 py-1.5 text-sm bg-surface-raised hover:bg-surface-overlay rounded-lg transition-colors"
+      >
+        Next →
+      </a>
+    )}
+  </nav>
+)}

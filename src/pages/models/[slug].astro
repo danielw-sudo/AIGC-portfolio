@@ -1,0 +1,85 @@
+---
+import MainLayout from '@/layouts/MainLayout.astro';
+import ImageCard from '@/components/ImageCard.astro';
+import TagPill from '@/components/TagPill.astro';
+import Pagination from '@/components/Pagination.astro';
+import { EntryService, TaxonomyService } from '@/lib/data';
+
+const { env } = Astro.locals.runtime;
+const { slug } = Astro.params;
+
+if (!slug) return Astro.redirect('/');
+
+const taxonomy = new TaxonomyService(env.DB);
+const model = await taxonomy.getModelBySlug(slug);
+
+if (!model) return Astro.redirect('/');
+
+const page = Number(Astro.url.searchParams.get('page')) || 1;
+const entries = new EntryService(env.DB);
+const result = await entries.listByModel(model.id, page, 24);
+
+const allModels = await taxonomy.getModelsWithCount();
+const activeModels = allModels.filter((m) => m.entry_count > 0);
+---
+
+<MainLayout title={model.title} description={`AI images generated with ${model.title}`}>
+  <section class="max-w-6xl mx-auto px-4 pt-8 sm:pt-12 pb-6">
+    <div class="mb-6">
+      <a href="/" class="text-sm text-text-muted hover:text-text-secondary transition-colors">← All images</a>
+      <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-2">{model.title}</h1>
+      {model.provider && <p class="text-text-secondary text-sm mt-1">by {model.provider}</p>}
+      <p class="text-text-muted text-sm mt-1">{result.total} image{result.total !== 1 ? 's' : ''}</p>
+    </div>
+
+    <div class="flex gap-2 overflow-x-auto scrollbar-hide pb-4">
+      <TagPill href="/" label="All" />
+      {activeModels.map((m) => (
+        <TagPill href={`/models/${m.slug}`} label={m.title} count={m.entry_count} active={m.slug === slug} />
+      ))}
+    </div>
+  </section>
+
+  <section class="max-w-6xl mx-auto px-4 pb-16">
+    {result.data.length === 0 ? (
+      <p class="text-center text-text-muted py-16">This model hasn't whispered yet. Check back soon.</p>
+    ) : (
+      <div id="masonry-grid" class="masonry-grid opacity-0 transition-opacity duration-500">
+        {result.data.map((entry) => (
+          <div class="masonry-item">
+            <ImageCard entry={entry} />
+          </div>
+        ))}
+      </div>
+    )}
+    <Pagination page={page} totalPages={result.total_pages} basePath={`/models/${slug}`} />
+  </section>
+
+  <script>
+    import Masonry from 'masonry-layout';
+    import imagesLoaded from 'imagesloaded';
+
+    const grid = document.getElementById('masonry-grid');
+    if (grid) {
+      const msnry = new Masonry(grid, {
+        itemSelector: '.masonry-item',
+        columnWidth: '.masonry-item',
+        percentPosition: true,
+        transitionDuration: 0,
+      });
+      imagesLoaded(grid, () => {
+        msnry.layout();
+        grid.classList.remove('opacity-0');
+        requestAnimationFrame(() => { msnry.options.transitionDuration = '0.3s'; });
+      });
+
+      let resizeTimer: ReturnType<typeof setTimeout>;
+      const relayout = (delay = 200) => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => msnry.layout(), delay);
+      };
+      window.addEventListener('resize', () => relayout(), { passive: true });
+      window.addEventListener('orientationchange', () => relayout(400));
+    }
+  </script>
+</MainLayout>

@@ -1,0 +1,38 @@
+---
+import MainLayout from '@/layouts/MainLayout.astro';
+import { BlogTopicService } from '@/lib/data/blog';
+import { SettingsService } from '@/lib/data';
+
+const { env } = Astro.locals.runtime;
+const topicSvc = new BlogTopicService(env.DB);
+const settings = new SettingsService(env.DB);
+const [topics, metaDesc] = await Promise.all([
+  topicSvc.getWithCount(),
+  settings.getMetaDesc('blog_topics', 'Browse posts by topic — pick what interests you.'),
+]);
+---
+
+<MainLayout title="Blog Topics" description={metaDesc}>
+  <section class="max-w-4xl mx-auto px-4 pt-8 sm:pt-12 pb-16">
+    <a href="/blog" class="text-sm text-text-muted hover:text-text-secondary transition-colors">← Blog</a>
+    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-2 mb-8">Topics</h1>
+
+    {topics.length === 0 ? (
+      <p class="text-text-muted">No topics yet.</p>
+    ) : (
+      <div class="flex flex-wrap gap-3">
+        {topics.map((t, i) => (
+          <a
+            href={`/blog/topics/${t.slug}`}
+            class="inline-flex items-center gap-2 bg-surface-raised hover:bg-surface-overlay
+                   border border-border rounded-lg px-4 py-2 transition-colors"
+          >
+            <span class={`w-2 h-2 rounded-full tag-color-${i % 8}`} />
+            <span class="text-text-primary">{t.title}</span>
+            <span class="text-sm text-text-muted">{t.post_count}</span>
+          </a>
+        ))}
+      </div>
+    )}
+  </section>
+</MainLayout>

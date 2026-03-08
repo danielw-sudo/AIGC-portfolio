@@ -1,0 +1,12 @@
+dist/
+.astro/
+node_modules/
+npm-debug.log*
+.env
+.dev.vars
+.DS_Store
+.idea/
+.cache/
+.wrangler/
+worker-configuration.d.ts
+.claude/

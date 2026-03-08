@@ -1,0 +1,263 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { SettingsService } from '@/lib/data';
+import { AI_MODEL_CATALOG, DEFAULT_RECIPE, DEFAULT_BLOG_RECIPE, findModel } from '@/lib/ai/models';
+import { DEFAULT_BLOG_COPYWRITE_RECIPE, DEFAULT_VISION_RECIPE } from '@/lib/data/settings';
+
+const { env } = Astro.locals.runtime;
+const settings = new SettingsService(env.DB);
+const config = await settings.getAIConfig();
+const blogConfig = await settings.getBlogAIConfig();
+const visionModelId = (await settings.get('ai_model_vision')) || '';
+const copywriteRecipe = (await settings.get('ai_blog_copywrite_recipe')) || DEFAULT_BLOG_COPYWRITE_RECIPE;
+const visionRecipe = (await settings.get('ai_vision_recipe')) || DEFAULT_VISION_RECIPE;
+const hasNvidiaKey = !!env.NVIDIA_API_KEY;
+const hasGoogleKey = !!env.GOOGLE_AI_KEY;
+
+// Resolve what vision model will actually run (mirrors VisionService logic)
+function resolveVisionModel(configured: string): string {
+  if (configured.startsWith('@google/') || configured.startsWith('@nv/')) return configured;
+  if (hasGoogleKey) return '@google/gemini-2.5-flash';
+  if (hasNvidiaKey) return '@nv/meta/llama-3.2-90b-vision-instruct';
+  return configured || '@cf/meta/llama-4-scout-17b-16e-instruct';
+}
+const resolvedVision = resolveVisionModel(visionModelId || '@cf/meta/llama-3.2-11b-vision-instruct');
+const resolvedVisionName = findModel(resolvedVision)?.name || resolvedVision.split('/').pop() || resolvedVision;
+
+const tiers = [
+  { key: 'fast', label: 'Fast', desc: '~1,400 calls/day (CF free tier)' },
+  { key: 'balanced', label: 'Balanced', desc: '~625 calls/day (CF free tier)' },
+  { key: 'quality', label: 'Quality', desc: '~310 calls/day (CF free tier)' },
+  { key: 'vision', label: 'Vision', desc: 'Image analysis' },
+] as const;
+---
+
+<AdminLayout title="AI Settings">
+  <h1 class="text-2xl font-bold mb-6">AI Settings</h1>
+  <div id="message" class="hidden mb-4 px-4 py-2 rounded-lg text-sm"></div>
+
+  <div class="lg:grid lg:grid-cols-12 lg:gap-8">
+    <!-- LEFT: Tabbed recipes -->
+    <div class="lg:col-span-7 mb-8 lg:mb-0">
+      <div class="flex border-b border-gray-700 mb-4">
+        <button type="button" id="tab-gallery"
+          class="px-4 py-1.5 text-sm rounded-t-lg font-medium bg-gray-800 text-white border border-gray-700 border-b-0">
+          Gallery Recipe
+        </button>
+        <button type="button" id="tab-blog"
+          class="px-4 py-1.5 text-sm rounded-t-lg font-medium bg-gray-900 text-gray-400 border border-gray-700 border-b-0 hover:text-white transition-colors">
+          Blog Recipe
+        </button>
+        <button type="button" id="tab-copywrite"
+          class="px-4 py-1.5 text-sm rounded-t-lg font-medium bg-gray-900 text-gray-400 border border-gray-700 border-b-0 hover:text-white transition-colors">
+          Blog Copywrite
+        </button>
+      </div>
+
+      <!-- Gallery Recipe panel -->
+      <div id="panel-gallery">
+        <div class="flex items-center justify-between mb-1">
+          <p class="text-sm text-gray-500">
+            System prompt for gallery entry analysis. Use <code class="text-purple-400">{'{{TAGS}}'}</code> for tag injection.
+          </p>
+          <button type="button" id="reset-recipe"
+            class="text-xs text-gray-500 hover:text-gray-300 transition-colors shrink-0 ml-2">
+            Reset
+          </button>
+        </div>
+        <textarea id="ai-recipe" rows="16"
+          class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-mono text-sm
+                 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        >{config.recipe}</textarea>
+      </div>
+
+      <!-- Blog Recipe panel -->
+      <div id="panel-blog" class="hidden">
+        <div class="flex items-center justify-between mb-1">
+          <p class="text-sm text-gray-500">
+            System prompt for blog post formatting. Use <code class="text-purple-400">{'{{TOPICS}}'}</code> for topic injection.
+          </p>
+          <button type="button" id="reset-blog-recipe"
+            class="text-xs text-gray-500 hover:text-gray-300 transition-colors shrink-0 ml-2">
+            Reset
+          </button>
+        </div>
+        <textarea id="ai-blog-recipe" rows="16"
+          class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-mono text-sm
+                 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        >{blogConfig.recipe}</textarea>
+      </div>
+
+      <!-- Blog Copywrite panel -->
+      <div id="panel-copywrite" class="hidden">
+        <div class="flex items-center justify-between mb-1">
+          <p class="text-sm text-gray-500">
+            System prompt for blog copywriting mode. Use <code class="text-purple-400">{'{{TOPICS}}'}</code> for topic injection.
+          </p>
+          <button type="button" id="reset-copywrite-recipe"
+            class="text-xs text-gray-500 hover:text-gray-300 transition-colors shrink-0 ml-2">
+            Reset
+          </button>
+        </div>
+        <textarea id="ai-blog-copywrite-recipe" rows="16"
+          class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-mono text-sm
+                 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        >{copywriteRecipe}</textarea>
+      </div>
+    </div>
+
+    <!-- RIGHT: Model tiers + save -->
+    <div class="lg:col-span-5">
+      <div class="lg:sticky lg:top-20 space-y-4">
+        <div class="bg-gray-900 rounded-lg p-4 border border-gray-700">
+          <h2 class="text-sm font-semibold mb-3">Model Tiers</h2>
+          <div class="text-xs mb-3 space-y-1">
+            <div>
+              <span class:list={[hasGoogleKey ? 'text-green-400' : 'text-gray-500']}>
+                Google AI: {hasGoogleKey ? '● Connected' : '○ Not configured'}
+              </span>
+            </div>
+            <div>
+              <span class:list={[hasNvidiaKey ? 'text-green-400' : 'text-gray-500']}>
+                NVIDIA: {hasNvidiaKey ? '● Connected' : '○ Not configured'}
+              </span>
+            </div>
+          </div>
+          {tiers.map((tier) => {
+            const currentId = tier.key === 'vision'
+              ? (visionModelId || '@cf/meta/llama-3.2-11b-vision-instruct')
+              : config[tier.key as keyof typeof config];
+            return (
+              <div class="mb-3 last:mb-0">
+                <label for={`ai-model-${tier.key}`} class="flex items-baseline gap-1.5 mb-1">
+                  <span class="text-xs font-medium text-gray-300">{tier.label}</span>
+                  <span class="text-[10px] text-gray-600">{tier.desc}</span>
+                </label>
+                <select id={`ai-model-${tier.key}`}
+                  class="w-full bg-gray-800 border border-gray-700 rounded-md px-2 py-1.5 text-white text-xs
+                         focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                  {AI_MODEL_CATALOG.map((m) => (
+                    <option value={m.id} selected={m.id === currentId}>
+                      {m.name} · {m.params} · {m.provider}
+                    </option>
+                  ))}
+                </select>
+                {tier.key === 'vision' && (
+                  <p class="text-[10px] text-gray-500 mt-1">
+                    Resolved: <span class="text-blue-400">{resolvedVisionName}</span>
+                    {resolvedVision !== currentId && <span class="text-gray-600 ml-1">(auto-upgraded)</span>}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <!-- Vision Recipe (collapsible) -->
+        <details class="bg-gray-900 rounded-lg border border-gray-700">
+          <summary class="px-4 py-3 text-xs font-medium text-gray-400 cursor-pointer hover:text-gray-300 transition-colors">
+            Vision Prompt Recipe
+          </summary>
+          <div class="px-4 pb-4">
+            <p class="text-[11px] text-gray-600 mb-2">Prompt sent to vision model for prompt recovery. Leave blank for default.</p>
+            <textarea id="ai-vision-recipe" rows="6"
+              class="w-full bg-gray-800 border border-gray-700 rounded-md px-2 py-1.5 text-white font-mono text-[11px]
+                     focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            >{visionRecipe}</textarea>
+          </div>
+        </details>
+
+        <!-- Save -->
+        <div class="flex gap-3">
+          <button type="button" id="save-btn"
+            class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+            Save Settings
+          </button>
+          <a href="/admin" class="text-gray-400 hover:text-white py-2 px-4 transition-colors text-sm">Back</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data islands -->
+  <script id="catalog-data" type="application/json" set:html={JSON.stringify(AI_MODEL_CATALOG)} />
+  <script id="default-recipe-data" type="application/json" set:html={JSON.stringify(DEFAULT_RECIPE)} />
+  <script id="default-blog-recipe-data" type="application/json" set:html={JSON.stringify(DEFAULT_BLOG_RECIPE)} />
+  <script id="default-copywrite-recipe-data" type="application/json" set:html={JSON.stringify(DEFAULT_BLOG_COPYWRITE_RECIPE)} />
+  <script id="default-vision-recipe-data" type="application/json" set:html={JSON.stringify(DEFAULT_VISION_RECIPE)} />
+
+  <script>
+    import { setupNTabs } from '@/lib/admin-ui';
+
+    setupNTabs([
+      { btnId: 'tab-gallery', panelId: 'panel-gallery' },
+      { btnId: 'tab-blog', panelId: 'panel-blog' },
+      { btnId: 'tab-copywrite', panelId: 'panel-copywrite' },
+    ]);
+
+    const catalog = JSON.parse(document.getElementById('catalog-data')!.textContent!);
+    const defaultRecipe = JSON.parse(document.getElementById('default-recipe-data')!.textContent!);
+    const defaultBlogRecipe = JSON.parse(document.getElementById('default-blog-recipe-data')!.textContent!);
+    const defaultCopywriteRecipe = JSON.parse(document.getElementById('default-copywrite-recipe-data')!.textContent!);
+    const defaultVisionRecipe = JSON.parse(document.getElementById('default-vision-recipe-data')!.textContent!);
+    const msgEl = document.getElementById('message')!;
+
+    ['fast', 'balanced', 'quality', 'vision'].forEach((tier) => {
+      const select = document.getElementById(`ai-model-${tier}`) as HTMLSelectElement;
+      select.addEventListener('change', () => {
+        const m = catalog.find((c: { id: string }) => c.id === select.value);
+        if (m) select.title = m.description || '';
+      });
+    });
+
+    document.getElementById('reset-recipe')!.addEventListener('click', () => {
+      (document.getElementById('ai-recipe') as HTMLTextAreaElement).value = defaultRecipe;
+      showMsg('Recipe reset to default. Click Save to apply.', false);
+    });
+    document.getElementById('reset-blog-recipe')!.addEventListener('click', () => {
+      (document.getElementById('ai-blog-recipe') as HTMLTextAreaElement).value = defaultBlogRecipe;
+      showMsg('Blog recipe reset to default. Click Save to apply.', false);
+    });
+    document.getElementById('reset-copywrite-recipe')!.addEventListener('click', () => {
+      (document.getElementById('ai-blog-copywrite-recipe') as HTMLTextAreaElement).value = defaultCopywriteRecipe;
+      showMsg('Copywrite recipe reset to default. Click Save to apply.', false);
+    });
+
+    const saveBtn = document.getElementById('save-btn') as HTMLButtonElement;
+    saveBtn.addEventListener('click', async () => {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+      const payload = {
+        ai_model_fast: (document.getElementById('ai-model-fast') as HTMLSelectElement).value,
+        ai_model_balanced: (document.getElementById('ai-model-balanced') as HTMLSelectElement).value,
+        ai_model_quality: (document.getElementById('ai-model-quality') as HTMLSelectElement).value,
+        ai_model_vision: (document.getElementById('ai-model-vision') as HTMLSelectElement).value,
+        ai_recipe: (document.getElementById('ai-recipe') as HTMLTextAreaElement).value,
+        ai_blog_recipe: (document.getElementById('ai-blog-recipe') as HTMLTextAreaElement).value,
+        ai_blog_copywrite_recipe: (document.getElementById('ai-blog-copywrite-recipe') as HTMLTextAreaElement).value,
+        ai_vision_recipe: (document.getElementById('ai-vision-recipe') as HTMLTextAreaElement).value,
+      };
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error((await res.json()).error || 'Save failed');
+        showMsg('Settings saved.', false);
+      } catch (err) {
+        showMsg((err as Error).message, true);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Settings';
+      }
+    });
+
+    function showMsg(text: string, isError: boolean) {
+      msgEl.textContent = text;
+      msgEl.className = `mb-4 px-4 py-2 rounded-lg text-sm ${
+        isError ? 'bg-red-900/50 text-red-300' : 'bg-green-900/50 text-green-300'
+      }`;
+    }
+  </script>
+</AdminLayout>

@@ -1,0 +1,408 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { TaxonomyService } from '@/lib/data';
+
+const { env } = Astro.locals.runtime;
+const taxonomy = new TaxonomyService(env.DB);
+const models = await taxonomy.getAllModels();
+const tags = await taxonomy.getAllTags();
+---
+
+<AdminLayout title="New Entry">
+  <h1 class="text-2xl font-bold mb-6">New Entry</h1>
+  <div id="message" class="hidden mb-4 px-4 py-2 rounded-lg text-sm"></div>
+
+  <form id="entry-form" class="pb-20 lg:pb-0">
+    <div class="lg:grid lg:grid-cols-12 lg:gap-8">
+      <!-- LEFT: Content -->
+      <div class="lg:col-span-7 space-y-6 mb-6 lg:mb-0">
+
+        <!-- Cover Image -->
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Cover Image *</label>
+          <div class="flex gap-1 mb-0">
+            <button type="button" id="tab-upload" class="px-4 py-1.5 text-sm rounded-t-lg font-medium bg-gray-800 text-white border border-gray-700 border-b-0">Upload File</button>
+            <button type="button" id="tab-scrape" class="px-4 py-1.5 text-sm rounded-t-lg font-medium bg-gray-900 text-gray-400 border border-gray-700 border-b-0 hover:text-white transition-colors">Scrape URL</button>
+          </div>
+          <div id="panel-upload" class="border border-gray-700 rounded-b-lg rounded-tr-lg p-3">
+            <div id="drop-zone" class="border-2 border-dashed border-gray-700 rounded-lg p-8 text-center hover:border-blue-500 transition-colors cursor-pointer">
+              <input type="file" id="image-input" accept="image/*" class="hidden" />
+              <div id="drop-text">
+                <p class="text-gray-400">Drop an image or click to select</p>
+                <p class="text-gray-600 text-sm mt-1">JPG, PNG, WebP, GIF</p>
+              </div>
+              <img id="preview-upload" class="hidden mx-auto max-h-64 rounded-lg" />
+            </div>
+          </div>
+          <div id="panel-scrape" class="hidden border border-gray-700 rounded-b-lg rounded-tr-lg p-3">
+            <div class="flex gap-2">
+              <input type="url" id="scrape-url" placeholder="https://..."
+                class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+              <button type="button" id="scrape-btn" class="bg-purple-600 hover:bg-purple-500 text-white font-medium px-4 py-2 rounded-lg transition-colors whitespace-nowrap">Fetch</button>
+            </div>
+            <img id="preview-scrape" class="hidden mt-3 mx-auto max-h-64 rounded-lg" />
+          </div>
+          <div id="upload-progress" class="hidden mt-2">
+            <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
+              <div id="progress-bar" class="h-full bg-blue-500 transition-all duration-300" style="width:0%"></div>
+            </div>
+            <p id="upload-status" class="text-xs text-gray-500 mt-1"></p>
+          </div>
+          <input type="hidden" name="image_key" id="image-key" />
+          <input type="hidden" name="image_url" id="image-url" />
+          <input type="hidden" name="mime_type" id="mime-type" />
+          <input type="hidden" name="file_size" id="file-size" />
+          <input type="hidden" name="width" id="image-width" />
+          <input type="hidden" name="height" id="image-height" />
+        </div>
+
+        <!-- Additional Images -->
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Additional Images (optional)</label>
+          <div id="extra-images-list" class="flex flex-wrap gap-3 mb-3"></div>
+          <div class="flex gap-2 mb-0">
+            <button type="button" id="tab-extra-upload" class="px-3 py-1 text-xs rounded-t-lg font-medium bg-gray-800 text-white border border-gray-700 border-b-0">Upload</button>
+            <button type="button" id="tab-extra-scrape" class="px-3 py-1 text-xs rounded-t-lg font-medium bg-gray-900 text-gray-400 border border-gray-700 border-b-0 hover:text-white transition-colors">Scrape URL</button>
+          </div>
+          <div id="panel-extra-upload" class="border border-gray-700 rounded-b-lg rounded-tr-lg p-3">
+            <div id="extra-drop-zone" class="border-2 border-dashed border-gray-700 rounded-lg p-4 text-center hover:border-blue-500 transition-colors cursor-pointer">
+              <input type="file" id="extra-image-input" accept="image/*" class="hidden" />
+              <p class="text-gray-400 text-sm">Drop image or click to add</p>
+            </div>
+          </div>
+          <div id="panel-extra-scrape" class="hidden border border-gray-700 rounded-b-lg rounded-tr-lg p-3">
+            <div class="flex gap-2">
+              <input type="url" id="extra-scrape-url" placeholder="https://..."
+                class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+              <button type="button" id="extra-scrape-btn" class="bg-purple-600 hover:bg-purple-500 text-white font-medium px-3 py-1.5 rounded-lg transition-colors text-sm whitespace-nowrap">Fetch</button>
+            </div>
+          </div>
+          <div id="extra-progress" class="hidden mt-2">
+            <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
+              <div id="extra-progress-bar" class="h-full bg-blue-500 transition-all duration-300" style="width:0%"></div>
+            </div>
+            <p id="extra-status" class="text-xs text-gray-500 mt-1"></p>
+          </div>
+        </div>
+
+        <!-- Prompt -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="prompt" class="text-sm text-gray-400">Prompt</label>
+            <button type="button" id="recover-prompt-btn"
+              class="text-xs bg-purple-600 hover:bg-purple-500 text-white px-2.5 py-1 rounded-md transition-colors"
+              title="Use vision AI to recover the generation prompt from the cover image">
+              Recover Prompt
+            </button>
+          </div>
+          <textarea id="prompt" name="prompt" rows="4" placeholder="Enter the generation prompt"
+            class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"></textarea>
+        </div>
+
+        <!-- Negative Prompt -->
+        <div>
+          <label for="negative_prompt" class="block text-sm text-gray-400 mb-1">Negative Prompt</label>
+          <textarea id="negative_prompt" name="negative_prompt" rows="2" placeholder="Negative prompt (if any)"
+            class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"></textarea>
+        </div>
+
+        <!-- Description + AI -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="description" class="text-sm text-gray-400">Description</label>
+            <div class="flex items-center gap-1.5">
+              <select id="ai-tier" class="text-xs bg-gray-800 border border-gray-700 text-gray-300 rounded-md px-1.5 py-1 focus:outline-none focus:border-purple-500">
+                <option value="fast">Fast</option>
+                <option value="balanced">Balanced</option>
+                <option value="quality">Quality</option>
+              </select>
+              <button type="button" id="analyze-btn" class="text-xs bg-purple-600 hover:bg-purple-500 text-white px-2.5 py-1 rounded-md transition-colors">Analyze</button>
+            </div>
+          </div>
+          <div id="ai-suggestions" class="hidden mb-3 ai-panel-enter"></div>
+          <textarea id="description" name="description" rows="6" placeholder="Optional description — or click Analyze to get AI suggestions"
+            class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"></textarea>
+          <input type="hidden" id="ai-image-url" />
+        </div>
+      </div>
+
+      <!-- RIGHT: Sidebar -->
+      <div class="lg:col-span-5">
+        <div class="lg:sticky lg:top-20 space-y-6">
+
+          <!-- Publish box -->
+          <div class="bg-gray-900 border border-gray-700 rounded-lg p-4 space-y-4">
+            <div class="flex gap-6 items-center">
+              <div>
+                <label for="status" class="block text-xs text-gray-400 mb-1">Status</label>
+                <select id="status" name="status" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                </select>
+              </div>
+              <label class="inline-flex items-center gap-2 pt-4">
+                <input type="checkbox" id="featured" name="featured" class="accent-blue-500" />
+                <span class="text-sm text-gray-400">Featured</span>
+              </label>
+            </div>
+            <div class="flex gap-3">
+              <button type="submit" id="submit-btn" disabled class="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white font-medium py-2 px-6 rounded-lg transition-colors text-sm">Create Entry</button>
+              <a href="/admin/gallery" class="text-gray-400 hover:text-white py-2 px-4 transition-colors text-sm">Cancel</a>
+            </div>
+          </div>
+
+          <!-- Title -->
+          <div>
+            <label for="title" class="block text-sm text-gray-400 mb-1">Title *</label>
+            <input type="text" id="title" name="title" required placeholder="Enter title"
+              class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+          </div>
+
+          <!-- Model -->
+          <div>
+            <label for="model_id" class="block text-sm text-gray-400 mb-1">Model</label>
+            <select id="model_id" name="model_id" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              <option value="">— Select model —</option>
+              {models.map((m) => (
+                <option value={m.id}>{m.title} ({m.provider})</option>
+              ))}
+            </select>
+          </div>
+
+          <!-- Tags -->
+          <div>
+            <label class="block text-sm text-gray-400 mb-2">Tags</label>
+            <div class="flex gap-2 mb-3">
+              <input type="text" id="new-tag-input" placeholder="Add a tag..."
+                class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+              <button type="button" id="add-tag-btn" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">Add</button>
+            </div>
+            <div id="tag-list" class="flex flex-wrap gap-2">
+              {tags.map((t) => (
+                <label class="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-800 rounded-full text-sm hover:bg-gray-700 cursor-pointer transition-colors" data-tag-slug={t.slug}>
+                  <input type="checkbox" name="tag_ids" value={t.id} class="accent-blue-500" />
+                  <span>{t.title}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <!-- Source URL -->
+          <div>
+            <label for="source_url" class="block text-sm text-gray-400 mb-1">Source URL</label>
+            <input type="url" id="source_url" name="source_url" placeholder="https://..."
+              class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <!-- Mobile save bar -->
+  <div class="fixed bottom-0 inset-x-0 lg:hidden bg-gray-900/95 backdrop-blur-sm border-t border-gray-700 px-4 py-3 z-40">
+    <div class="flex items-center justify-between max-w-screen-xl mx-auto">
+      <span id="mobile-status" class="text-xs text-gray-400">Draft</span>
+      <button type="submit" form="entry-form" id="mobile-create-btn" disabled
+        class="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm font-medium py-2 px-6 rounded-lg transition-colors">
+        Create
+      </button>
+    </div>
+  </div>
+
+  <script>
+    import { showMessage, setupDropZone, setupTabs, makeProg } from '@/lib/admin-ui';
+    import { uploadFile, scrapeImage } from '@/lib/admin-ui';
+    import type { UploadResult } from '@/lib/admin-ui';
+    import { initTagManager } from '@/lib/admin-ui';
+    import { initAIAnalyze, getAIAssisted } from '@/lib/admin-ui';
+
+    const form = document.getElementById('entry-form') as HTMLFormElement;
+    const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+    const mobileBtn = document.getElementById('mobile-create-btn') as HTMLButtonElement | null;
+    const msgEl = document.getElementById('message')!;
+    const msg = (text: string, isError: boolean) => showMessage(msgEl, text, isError);
+    let imageUploaded = false;
+    function enableSubmit() { submitBtn.disabled = false; if (mobileBtn) mobileBtn.disabled = false; }
+
+    // --- Cover image ---
+    const coverProg = makeProg('progress-bar', 'upload-status', 'upload-progress');
+    setupTabs('tab-upload', 'tab-scrape', 'panel-upload', 'panel-scrape');
+
+    function setImageFields(d: UploadResult) {
+      (document.getElementById('image-key') as HTMLInputElement).value = d.image_key;
+      (document.getElementById('image-url') as HTMLInputElement).value = d.image_url;
+      (document.getElementById('mime-type') as HTMLInputElement).value = d.mime_type;
+      (document.getElementById('file-size') as HTMLInputElement).value = String(d.file_size);
+      (document.getElementById('image-width') as HTMLInputElement).value = d.width ? String(d.width) : '';
+      (document.getElementById('image-height') as HTMLInputElement).value = d.height ? String(d.height) : '';
+      (document.getElementById('ai-image-url') as HTMLInputElement).value = d.image_url;
+    }
+
+    setupDropZone('drop-zone', 'image-input', async (file) => {
+      (document.getElementById('preview-upload') as HTMLImageElement).src = URL.createObjectURL(file);
+      document.getElementById('preview-upload')!.classList.remove('hidden');
+      document.getElementById('drop-text')!.classList.add('hidden');
+      coverProg.show('Uploading...', 30);
+      try {
+        coverProg.set(60);
+        const titleVal = (document.getElementById('title') as HTMLInputElement).value;
+        const data = await uploadFile(file, titleVal || undefined);
+        setImageFields(data); coverProg.set(100, 'Uploaded ✓'); imageUploaded = true; enableSubmit();
+      } catch (err) { coverProg.set(0, `Error: ${(err as Error).message}`, true); }
+    });
+
+    const scrapeBtn = document.getElementById('scrape-btn') as HTMLButtonElement;
+    const scrapeUrlInput = document.getElementById('scrape-url') as HTMLInputElement;
+    async function handleScrape() {
+      const url = scrapeUrlInput.value.trim(); if (!url) return;
+      scrapeBtn.disabled = true; scrapeBtn.textContent = 'Fetching...';
+      coverProg.show('Fetching...', 20);
+      try {
+        coverProg.set(50);
+        const titleVal = (document.getElementById('title') as HTMLInputElement).value;
+        const data = await scrapeImage(url, titleVal || undefined);
+        setImageFields(data);
+        (document.getElementById('preview-scrape') as HTMLImageElement).src = data.image_url;
+        document.getElementById('preview-scrape')!.classList.remove('hidden');
+        const sourceInput = document.getElementById('source_url') as HTMLInputElement;
+        if (!sourceInput.value) sourceInput.value = url;
+        coverProg.set(100, 'Fetched ✓'); imageUploaded = true; enableSubmit();
+      } catch (err) { coverProg.set(0, `Error: ${(err as Error).message}`, true); }
+      finally { scrapeBtn.disabled = false; scrapeBtn.textContent = 'Fetch'; }
+    }
+    scrapeBtn.addEventListener('click', handleScrape);
+    scrapeUrlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); handleScrape(); } });
+
+    // --- Extra images queue ---
+    const extraQueue: (UploadResult | undefined)[] = [];
+    const extraProg = makeProg('extra-progress-bar', 'extra-status', 'extra-progress');
+    setupTabs('tab-extra-upload', 'tab-extra-scrape', 'panel-extra-upload', 'panel-extra-scrape');
+
+    function addExtraThumb(data: UploadResult) {
+      const idx = extraQueue.length; extraQueue.push(data);
+      const div = document.createElement('div'); div.className = 'relative group'; div.dataset.extraIdx = String(idx);
+      div.innerHTML = `<img src="${data.image_url}" alt="" class="w-16 h-16 sm:w-24 sm:h-24 object-cover rounded-lg border border-gray-700" /><button type="button" class="extra-remove absolute -top-2 -right-2 w-6 h-6 bg-red-600 hover:bg-red-500 text-white rounded-full text-xs sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center" data-extra-idx="${idx}">×</button>`;
+      document.getElementById('extra-images-list')!.appendChild(div);
+    }
+
+    setupDropZone('extra-drop-zone', 'extra-image-input', async (file) => {
+      extraProg.show('Uploading...', 30);
+      try {
+        extraProg.set(60);
+        const data = await uploadFile(file);
+        addExtraThumb(data); extraProg.set(100, 'Added ✓');
+        (document.getElementById('extra-image-input') as HTMLInputElement).value = '';
+      } catch (err) { extraProg.set(0, `Error: ${(err as Error).message}`, true); }
+    });
+
+    const extraScrapeBtn = document.getElementById('extra-scrape-btn') as HTMLButtonElement;
+    const extraScrapeUrl = document.getElementById('extra-scrape-url') as HTMLInputElement;
+    async function handleExtraScrape() {
+      const url = extraScrapeUrl.value.trim(); if (!url) return;
+      extraScrapeBtn.disabled = true; extraScrapeBtn.textContent = 'Fetching...';
+      extraProg.show('Fetching...', 20);
+      try {
+        extraProg.set(50);
+        const data = await scrapeImage(url);
+        addExtraThumb(data); extraProg.set(100, 'Added ✓'); extraScrapeUrl.value = '';
+      } catch (err) { extraProg.set(0, `Error: ${(err as Error).message}`, true); }
+      finally { extraScrapeBtn.disabled = false; extraScrapeBtn.textContent = 'Fetch'; }
+    }
+    extraScrapeBtn.addEventListener('click', handleExtraScrape);
+    extraScrapeUrl.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); handleExtraScrape(); } });
+
+    document.getElementById('extra-images-list')!.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest('.extra-remove') as HTMLElement | null; if (!btn) return;
+      extraQueue[Number(btn.dataset.extraIdx)] = undefined; btn.closest('[data-extra-idx]')?.remove();
+    });
+
+    // --- Tags + AI ---
+    initTagManager({ inputId: 'new-tag-input', btnId: 'add-tag-btn', listId: 'tag-list', onMessage: msg });
+    initAIAnalyze({ btnId: 'analyze-btn', tierId: 'ai-tier', promptId: 'prompt', descriptionId: 'description', titleId: 'title', tagListId: 'tag-list', suggestionsId: 'ai-suggestions', imageUrlId: 'ai-image-url', onMessage: msg });
+
+    // --- Vision Analysis (one-click fill from image) ---
+    const recoverBtn = document.getElementById('recover-prompt-btn') as HTMLButtonElement;
+    recoverBtn.addEventListener('click', async () => {
+      const imageUrl = (document.getElementById('ai-image-url') as HTMLInputElement)?.value;
+      if (!imageUrl) { msg('No cover image — upload one first.', true); return; }
+      recoverBtn.disabled = true; recoverBtn.textContent = 'Analyzing…';
+      try {
+        const res = await fetch('/api/analyze', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'vision-prompt', imageUrl }),
+        });
+        if (!res.ok) throw new Error((await res.json()).error || 'Vision analysis failed');
+        const data = await res.json();
+        let filled = 0;
+        if (data.title) { (document.getElementById('title') as HTMLInputElement).value = data.title; filled++; }
+        if (data.recoveredPrompt) { (document.getElementById('prompt') as HTMLTextAreaElement).value = data.recoveredPrompt; filled++; }
+        if (data.description) { (document.getElementById('description') as HTMLTextAreaElement).value = data.description; filled++; }
+        // Check matching tags
+        const allTags = [...(data.tags || []), ...(data.newTags || [])];
+        if (allTags.length > 0) {
+          const checkboxes = document.querySelectorAll<HTMLInputElement>('#tag-list input[type="checkbox"]');
+          checkboxes.forEach((cb) => {
+            const label = cb.closest('label');
+            const slug = label?.dataset.tagSlug?.toLowerCase() || '';
+            const text = label?.querySelector('span')?.textContent?.toLowerCase() || '';
+            if (allTags.some((t: string) => t === slug || t === text)) { cb.checked = true; filled++; }
+          });
+        }
+        if (filled > 0) {
+          msg(`Vision filled ${filled} field${filled > 1 ? 's' : ''} via ${data.visionModel?.split('/').pop() || 'vision'}`, false);
+          enableSubmit();
+        } else if (data.raw) {
+          // Parsing failed — dump raw into prompt so user sees what model said
+          (document.getElementById('prompt') as HTMLTextAreaElement).value = data.raw;
+          msg(`Vision didn't return structured output — raw response in prompt field`, true);
+        } else { msg('Vision model returned empty response.', true); }
+      } catch (err) { msg((err as Error).message, true); }
+      finally { recoverBtn.disabled = false; recoverBtn.textContent = 'Recover Prompt'; }
+    });
+
+    // --- Mobile save bar sync ---
+    const statusSelect = document.getElementById('status') as HTMLSelectElement;
+    const mobileStatus = document.getElementById('mobile-status');
+    if (mobileStatus) {
+      statusSelect.addEventListener('change', () => { mobileStatus.textContent = statusSelect.value; });
+    }
+
+    // --- Form submit ---
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault(); if (!imageUploaded) return;
+      submitBtn.disabled = true; submitBtn.textContent = 'Creating...';
+      const tagIds = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="tag_ids"]:checked')).map(cb => Number(cb.value));
+      const payload = {
+        title: (document.getElementById('title') as HTMLInputElement).value,
+        prompt: (document.getElementById('prompt') as HTMLTextAreaElement).value || undefined,
+        negative_prompt: (document.getElementById('negative_prompt') as HTMLTextAreaElement).value || undefined,
+        description: (document.getElementById('description') as HTMLTextAreaElement).value || undefined,
+        model_id: Number((document.getElementById('model_id') as HTMLSelectElement).value) || undefined,
+        source_url: (document.getElementById('source_url') as HTMLInputElement).value || undefined,
+        image_key: (document.getElementById('image-key') as HTMLInputElement).value,
+        image_url: (document.getElementById('image-url') as HTMLInputElement).value,
+        mime_type: (document.getElementById('mime-type') as HTMLInputElement).value,
+        file_size: Number((document.getElementById('file-size') as HTMLInputElement).value) || undefined,
+        width: Number((document.getElementById('image-width') as HTMLInputElement).value) || undefined,
+        height: Number((document.getElementById('image-height') as HTMLInputElement).value) || undefined,
+        status: (document.getElementById('status') as HTMLSelectElement).value as 'draft' | 'published',
+        featured: (document.getElementById('featured') as HTMLInputElement).checked,
+        tag_ids: tagIds.length > 0 ? tagIds : undefined,
+        metadata: { ai_assisted: getAIAssisted() },
+      };
+      try {
+        const res = await fetch('/api/entries', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error((await res.json()).error || 'Create failed');
+        const entry = await res.json();
+        const validExtras = extraQueue.filter(Boolean);
+        if (validExtras.length > 0) {
+          submitBtn.textContent = 'Linking images...';
+          for (const extra of validExtras) {
+            await fetch(`/api/entries/${entry.id}/images`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(extra) });
+          }
+        }
+        window.location.href = '/admin';
+      } catch (err) { msg((err as Error).message, true); submitBtn.disabled = false; submitBtn.textContent = 'Create Entry'; }
+    });
+  </script>
+</AdminLayout>

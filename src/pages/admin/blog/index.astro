@@ -1,0 +1,145 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { BlogPostService, BlogTopicService } from '@/lib/data/blog';
+
+const { env } = Astro.locals.runtime;
+const svc = new BlogPostService(env.DB);
+const topicSvc = new BlogTopicService(env.DB);
+
+const page = Number(Astro.url.searchParams.get('page')) || 1;
+const q = Astro.url.searchParams.get('q')?.trim() || '';
+const status = Astro.url.searchParams.get('status') || '';
+const sort = Astro.url.searchParams.get('sort') || '';
+
+const result = await svc.listAllFiltered({ page, perPage: 20, q: q || undefined, status: status || undefined, sort: sort || undefined });
+const topics = await topicSvc.getWithCount();
+
+const filterParams = new URLSearchParams();
+if (q) filterParams.set('q', q);
+if (status) filterParams.set('status', status);
+if (sort) filterParams.set('sort', sort);
+const filterStr = filterParams.toString() ? `&${filterParams.toString()}` : '';
+const totalPublished = result.data.filter((p) => p.status === 'published').length;
+const totalFeatured = result.data.filter((p) => p.featured).length;
+
+function truncate(s: string | null, max: number): string {
+  if (!s) return '';
+  return s.length > max ? s.slice(0, max) + '...' : s;
+}
+---
+
+<AdminLayout title="Blog">
+  <!-- Stats -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+    <div class="bg-gray-900 rounded-lg p-4">
+      <p class="text-2xl font-bold">{result.total}</p>
+      <p class="text-sm text-gray-500">Total Posts</p>
+    </div>
+    <div class="bg-gray-900 rounded-lg p-4">
+      <p class="text-2xl font-bold text-green-400">{totalPublished}</p>
+      <p class="text-sm text-gray-500">Published</p>
+    </div>
+    <div class="bg-gray-900 rounded-lg p-4">
+      <p class="text-2xl font-bold text-yellow-400">{totalFeatured}</p>
+      <p class="text-sm text-gray-500">Featured</p>
+    </div>
+    <div class="bg-gray-900 rounded-lg p-4">
+      <p class="text-2xl font-bold">{topics.length}</p>
+      <p class="text-sm text-gray-500">Topics</p>
+    </div>
+  </div>
+
+  <!-- Search / Filter / Sort -->
+  <form method="get" action="/admin/blog" class="flex flex-wrap items-center gap-3 mb-6">
+    <div class="flex-1 min-w-[200px]">
+      <input type="text" name="q" value={q} placeholder="Search title or body..."
+        class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+    </div>
+    <select name="status" class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500">
+      <option value="">All status</option>
+      <option value="published" selected={status === 'published'}>Published</option>
+      <option value="draft" selected={status === 'draft'}>Draft</option>
+    </select>
+    <select name="sort" class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500">
+      <option value="">Newest first</option>
+      <option value="oldest" selected={sort === 'oldest'}>Oldest first</option>
+      <option value="title" selected={sort === 'title'}>Title A-Z</option>
+      <option value="updated" selected={sort === 'updated'}>Recently updated</option>
+    </select>
+    <button type="submit" class="bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors">Search</button>
+    {(q || status || sort) && (
+      <a href="/admin/blog" class="text-xs text-gray-500 hover:text-white transition-colors">Clear</a>
+    )}
+  </form>
+
+  <!-- Actions -->
+  <div class="flex items-center justify-between mb-6">
+    <h2 class="text-lg font-semibold">Posts {q && <span class="text-sm text-gray-500 font-normal">matching "{q}"</span>}</h2>
+    <a href="/admin/blog/new" class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors">+ New Post</a>
+  </div>
+
+  <!-- Post list -->
+  {result.data.length === 0 ? (
+    <div class="text-center py-16">
+      <p class="text-gray-500 mb-4">No posts yet</p>
+      <a href="/admin/blog/new" class="text-blue-400 hover:text-blue-300 transition-colors">Create your first post &rarr;</a>
+    </div>
+  ) : (
+    <div class="space-y-2">
+      {result.data.map((post) => (
+        <a href={`/admin/blog/${post.id}`} class="flex items-center gap-4 bg-gray-900 hover:bg-gray-800 rounded-lg p-3 transition-colors group">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <p class="text-sm font-medium text-gray-100 truncate">{post.title}</p>
+              {post.featured && <span class="text-yellow-400 text-xs flex-shrink-0">&starf;</span>}
+            </div>
+            {post.summary && <p class="text-xs text-gray-500 truncate mt-0.5">{truncate(post.summary, 80)}</p>}
+            <div class="flex items-center gap-2 mt-1">
+              {post.topics?.length ? (
+                <div class="flex flex-wrap gap-1">
+                  {post.topics.map((t) => (
+                    <span class="text-[10px] bg-blue-900/40 text-blue-300 px-1.5 py-0.5 rounded-full">{t.title}</span>
+                  ))}
+                </div>
+              ) : null}
+              <span class="text-xs text-gray-600">{post.created_at.split('T')[0]}</span>
+            </div>
+          </div>
+          <div class="flex-shrink-0">
+            <span class:list={['text-xs px-2 py-0.5 rounded-full', post.status === 'published' ? 'bg-green-900/50 text-green-400' : 'bg-gray-800 text-gray-500']}>
+              {post.status}
+            </span>
+          </div>
+          <span class="text-gray-600 group-hover:text-gray-400 transition-colors">&rarr;</span>
+        </a>
+      ))}
+    </div>
+  )}
+
+  <!-- Pagination -->
+  {result.total_pages > 1 && (
+    <div class="flex items-center justify-center gap-2 mt-8">
+      {page > 1 && (
+        <a href={`/admin/blog?page=${page - 1}${filterStr}`} class="px-3 py-1 text-sm bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors">&larr; Prev</a>
+      )}
+      <span class="text-sm text-gray-500">Page {page} of {result.total_pages}</span>
+      {page < result.total_pages && (
+        <a href={`/admin/blog?page=${page + 1}${filterStr}`} class="px-3 py-1 text-sm bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors">Next &rarr;</a>
+      )}
+    </div>
+  )}
+
+  <!-- Quick ref: topics -->
+  <div class="mt-12 pt-8 border-t border-gray-800">
+    <h3 class="text-sm font-semibold text-gray-400 mb-3">Topics</h3>
+    {topics.length === 0 ? (
+      <p class="text-sm text-gray-600">No topics yet</p>
+    ) : (
+      <div class="flex flex-wrap gap-2">
+        {topics.map((t) => (
+          <span class="text-xs bg-gray-800 text-gray-400 px-2 py-1 rounded-full">{t.title} ({t.post_count})</span>
+        ))}
+      </div>
+    )}
+  </div>
+</AdminLayout>

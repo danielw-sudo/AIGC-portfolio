@@ -1,0 +1,186 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { EntryService, TaxonomyService } from '@/lib/data';
+
+const { env } = Astro.locals.runtime;
+const entries = new EntryService(env.DB);
+const taxonomy = new TaxonomyService(env.DB);
+
+const page = Number(Astro.url.searchParams.get('page')) || 1;
+const q = Astro.url.searchParams.get('q')?.trim() || '';
+const status = Astro.url.searchParams.get('status') || '';
+const sort = Astro.url.searchParams.get('sort') || '';
+
+const result = await entries.listAllFiltered({ page, perPage: 20, q: q || undefined, status: status || undefined, sort: sort || undefined });
+const models = await taxonomy.getModelsWithCount();
+const tags = await taxonomy.getTagsWithCount();
+
+const filterParams = new URLSearchParams();
+if (q) filterParams.set('q', q);
+if (status) filterParams.set('status', status);
+if (sort) filterParams.set('sort', sort);
+const filterStr = filterParams.toString() ? `&${filterParams.toString()}` : '';
+const totalPublished = result.data.filter((e) => e.status === 'published').length;
+---
+
+<AdminLayout title="Gallery">
+  <!-- Stats -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+    <div class="bg-gray-900 rounded-lg p-4">
+      <p class="text-2xl font-bold">{result.total}</p>
+      <p class="text-sm text-gray-500">Total Entries</p>
+    </div>
+    <div class="bg-gray-900 rounded-lg p-4">
+      <p class="text-2xl font-bold text-green-400">{totalPublished}</p>
+      <p class="text-sm text-gray-500">Published</p>
+    </div>
+    <div class="bg-gray-900 rounded-lg p-4">
+      <p class="text-2xl font-bold">{models.length}</p>
+      <p class="text-sm text-gray-500">Models</p>
+    </div>
+    <div class="bg-gray-900 rounded-lg p-4">
+      <p class="text-2xl font-bold">{tags.length}</p>
+      <p class="text-sm text-gray-500">Tags</p>
+    </div>
+  </div>
+
+  <!-- Search / Filter / Sort -->
+  <form method="get" action="/admin/gallery" class="flex flex-wrap items-center gap-3 mb-6">
+    <div class="flex-1 min-w-[200px]">
+      <input type="text" name="q" value={q} placeholder="Search title or prompt..."
+        class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+    </div>
+    <select name="status" class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500">
+      <option value="">All status</option>
+      <option value="published" selected={status === 'published'}>Published</option>
+      <option value="draft" selected={status === 'draft'}>Draft</option>
+    </select>
+    <select name="sort" class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500">
+      <option value="">Newest first</option>
+      <option value="oldest" selected={sort === 'oldest'}>Oldest first</option>
+      <option value="title" selected={sort === 'title'}>Title A-Z</option>
+      <option value="updated" selected={sort === 'updated'}>Recently updated</option>
+    </select>
+    <button type="submit" class="bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors">Search</button>
+    {(q || status || sort) && (
+      <a href="/admin/gallery" class="text-xs text-gray-500 hover:text-white transition-colors">Clear</a>
+    )}
+  </form>
+
+  <!-- Actions -->
+  <div class="flex items-center justify-between mb-6">
+    <h2 class="text-lg font-semibold">Entries {q && <span class="text-sm text-gray-500 font-normal">matching "{q}"</span>}</h2>
+    <a
+      href="/admin/new"
+      class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+    >
+      + New Entry
+    </a>
+  </div>
+
+  <!-- Entry list -->
+  {result.data.length === 0 ? (
+    <div class="text-center py-16">
+      <p class="text-gray-500 mb-4">No entries yet</p>
+      <a href="/admin/new" class="text-blue-400 hover:text-blue-300 transition-colors">Create your first entry →</a>
+    </div>
+  ) : (
+    <div class="space-y-2">
+      {result.data.map((entry) => (
+        <a
+          href={`/admin/${entry.id}`}
+          class="flex items-center gap-4 bg-gray-900 hover:bg-gray-800 rounded-lg p-3 transition-colors group"
+        >
+          <div class="w-12 h-12 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0">
+            <img
+              src={entry.image_url}
+              alt=""
+              class="w-full h-full object-cover"
+              onerror="this.parentElement.innerHTML='<div class=\'flex items-center justify-center h-full text-gray-600 text-lg\'>🖼</div>'"
+            />
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <p class="text-sm font-medium text-gray-100 truncate">{entry.title}</p>
+              {entry.featured && <span class="text-yellow-400 text-xs">★</span>}
+            </div>
+            <div class="flex items-center gap-2 text-xs text-gray-500">
+              {entry.model && <span>{entry.model.title}</span>}
+              <span>·</span>
+              <span>{entry.created_at.split('T')[0]}</span>
+            </div>
+          </div>
+          <div class="flex-shrink-0">
+            <span
+              class:list={[
+                'text-xs px-2 py-0.5 rounded-full',
+                entry.status === 'published' ? 'bg-green-900/50 text-green-400' : 'bg-gray-800 text-gray-500',
+              ]}
+            >
+              {entry.status}
+            </span>
+          </div>
+          <span class="text-gray-600 group-hover:text-gray-400 transition-colors">→</span>
+        </a>
+      ))}
+    </div>
+  )}
+
+  <!-- Pagination -->
+  {result.total_pages > 1 && (
+    <div class="flex items-center justify-center gap-2 mt-8">
+      {page > 1 && (
+        <a
+          href={`/admin/gallery?page=${page - 1}${filterStr}`}
+          class="px-3 py-1 text-sm bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+        >
+          ← Prev
+        </a>
+      )}
+      <span class="text-sm text-gray-500">
+        Page {page} of {result.total_pages}
+      </span>
+      {page < result.total_pages && (
+        <a
+          href={`/admin/gallery?page=${page + 1}${filterStr}`}
+          class="px-3 py-1 text-sm bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+        >
+          Next →
+        </a>
+      )}
+    </div>
+  )}
+
+  <!-- Quick ref: models & tags -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-12 pt-8 border-t border-gray-800">
+    <div>
+      <h3 class="text-sm font-semibold text-gray-400 mb-3">
+        <a href="/admin/models" class="hover:text-white transition-colors">Model Badges →</a>
+      </h3>
+      <div class="space-y-1">
+        {models.map((m) => (
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-gray-300">{m.title}</span>
+            <span class="text-gray-600">{m.entry_count}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+    <div>
+      <h3 class="text-sm font-semibold text-gray-400 mb-3">
+        <a href="/admin/tags" class="hover:text-white transition-colors">Tags →</a>
+      </h3>
+      {tags.length === 0 ? (
+        <p class="text-sm text-gray-600">No tags yet</p>
+      ) : (
+        <div class="flex flex-wrap gap-2">
+          {tags.map((t) => (
+            <span class="text-xs bg-gray-800 text-gray-400 px-2 py-1 rounded-full">
+              {t.title} ({t.entry_count})
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+</AdminLayout>

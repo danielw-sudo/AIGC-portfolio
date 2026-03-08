@@ -1,0 +1,70 @@
+---
+import MainLayout from '@/layouts/MainLayout.astro';
+import BlogCard from '@/components/BlogCard.astro';
+import Pagination from '@/components/Pagination.astro';
+import { BlogPostService, BlogTopicService } from '@/lib/data/blog';
+
+const { env } = Astro.locals.runtime;
+const { slug } = Astro.params;
+
+if (!slug) return Astro.redirect('/blog/topics');
+
+const topicSvc = new BlogTopicService(env.DB);
+const topic = await topicSvc.getBySlug(slug);
+
+if (!topic) return Astro.redirect('/blog/topics');
+
+const page = Number(Astro.url.searchParams.get('page')) || 1;
+const posts = new BlogPostService(env.DB);
+const result = await posts.listByTopic(topic.id, page, 12);
+
+const allTopics = await topicSvc.getWithCount();
+const activeTopics = allTopics.filter((t) => t.post_count > 0);
+---
+
+<MainLayout title={topic.title} description={`Blog posts about ${topic.title}`}>
+  <section class="max-w-5xl mx-auto px-4 pt-8 sm:pt-12 pb-6">
+    <div class="mb-6">
+      <a href="/blog" class="text-sm text-text-muted hover:text-text-secondary transition-colors">← Blog</a>
+      <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-2">{topic.title}</h1>
+      <p class="text-text-muted text-sm mt-1">{result.total} post{result.total !== 1 ? 's' : ''}</p>
+    </div>
+
+    <div class="flex gap-2 overflow-x-auto scrollbar-hide pb-4">
+      <a
+        href="/blog"
+        class="shrink-0 inline-flex items-center rounded-lg px-3 py-1.5 text-sm border border-border
+               bg-surface-raised hover:bg-surface-overlay text-text-secondary transition-colors"
+      >
+        All
+      </a>
+      {activeTopics.map((t, i) => (
+        <a
+          href={`/blog/topics/${t.slug}`}
+          class:list={[
+            'shrink-0 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm border transition-colors',
+            t.slug === slug
+              ? 'border-accent bg-accent/10 text-accent'
+              : 'border-border bg-surface-raised hover:bg-surface-overlay text-text-secondary',
+          ]}
+        >
+          <span class={`w-2 h-2 rounded-full tag-color-${i % 8}`} />
+          {t.title}
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <section class="max-w-5xl mx-auto px-4 pb-16">
+    {result.data.length === 0 ? (
+      <p class="text-center text-text-muted py-16">No posts with this topic yet.</p>
+    ) : (
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {result.data.map((post) => (
+          <BlogCard post={post} />
+        ))}
+      </div>
+    )}
+    <Pagination page={page} totalPages={result.total_pages} basePath={`/blog/topics/${slug}`} />
+  </section>
+</MainLayout>

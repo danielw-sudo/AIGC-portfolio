@@ -1,0 +1,464 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { EntryService, TaxonomyService, EntryImageService } from '@/lib/data';
+
+const { env } = Astro.locals.runtime;
+const id = Number(Astro.params.id);
+
+if (!id) return Astro.redirect('/admin/gallery');
+
+const entries = new EntryService(env.DB);
+const taxonomy = new TaxonomyService(env.DB);
+const imageService = new EntryImageService(env.DB);
+
+const entry = await entries.getById(id);
+if (!entry) return Astro.redirect('/admin/gallery');
+
+const { results: entryTags } = await env.DB
+  .prepare('SELECT tag_id FROM entry_tags WHERE entry_id = ?1')
+  .bind(id)
+  .all<{ tag_id: number }>();
+const entryTagIds = entryTags.map((t) => t.tag_id);
+
+const [models, tags, entryImages] = await Promise.all([
+  taxonomy.getAllModels(),
+  taxonomy.getAllTags(),
+  imageService.listByEntry(id),
+]);
+
+const additionalImages = entryImages.filter((i) => i.sort_order > 0);
+---
+
+<AdminLayout title={`Edit: ${entry.title}`}>
+  <h1 class="text-2xl font-bold mb-6">Edit Entry</h1>
+  <div id="message" class="hidden mb-4 px-4 py-2 rounded-lg text-sm"></div>
+
+  <form id="edit-form" data-entry-id={id} class="pb-20 lg:pb-0">
+    <div class="lg:grid lg:grid-cols-12 lg:gap-8">
+      <!-- LEFT: Content -->
+      <div class="lg:col-span-7 space-y-6 mb-6 lg:mb-0">
+
+        <!-- Cover Image (editable) -->
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Cover Image</label>
+          <div class="bg-gray-900 rounded-lg p-3">
+            <img id="cover-preview" src={entry.image_url} alt={entry.title} class="max-h-48 rounded" onerror="this.style.display='none'" />
+            <p id="cover-key-text" class="text-xs text-gray-600 mt-2 font-mono">{entry.image_key}</p>
+          </div>
+          <div class="flex gap-3 mt-2">
+            <button type="button" id="replace-cover-toggle" class="text-xs text-blue-400 hover:text-blue-300 transition-colors">
+              Replace cover image...
+            </button>
+            <button type="button" id="remove-cover-btn" class="text-xs text-red-400 hover:text-red-300 transition-colors">
+              Remove cover
+            </button>
+          </div>
+          <div id="cover-replace" class="hidden mt-2">
+            <div class="flex gap-2 mb-0">
+              <button type="button" id="tab-cover-upload" class="px-3 py-1 text-xs rounded-t-lg font-medium bg-gray-800 text-white border border-gray-700 border-b-0">Upload</button>
+              <button type="button" id="tab-cover-scrape" class="px-3 py-1 text-xs rounded-t-lg font-medium bg-gray-900 text-gray-400 border border-gray-700 border-b-0 hover:text-white transition-colors">Scrape URL</button>
+            </div>
+            <div id="panel-cover-upload" class="border border-gray-700 rounded-b-lg rounded-tr-lg p-3">
+              <div id="cover-drop-zone" class="border-2 border-dashed border-gray-700 rounded-lg p-4 text-center hover:border-blue-500 transition-colors cursor-pointer">
+                <input type="file" id="cover-file-input" accept="image/*" class="hidden" />
+                <p class="text-gray-400 text-sm">Drop image or click to upload</p>
+              </div>
+            </div>
+            <div id="panel-cover-scrape" class="hidden border border-gray-700 rounded-b-lg rounded-tr-lg p-3">
+              <div class="flex gap-2">
+                <input type="url" id="cover-scrape-url" placeholder="https://..."
+                  class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                <button type="button" id="cover-scrape-btn" class="bg-purple-600 hover:bg-purple-500 text-white font-medium px-3 py-1.5 rounded-lg transition-colors text-sm">Fetch</button>
+              </div>
+            </div>
+            <div id="cover-progress" class="hidden mt-2">
+              <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
+                <div id="cover-progress-bar" class="h-full bg-blue-500 transition-all duration-300" style="width:0%"></div>
+              </div>
+              <p id="cover-status" class="text-xs text-gray-500 mt-1"></p>
+            </div>
+          </div>
+          <input type="hidden" id="new-image-key" />
+          <input type="hidden" id="new-image-url" />
+          <input type="hidden" id="new-mime-type" />
+          <input type="hidden" id="new-file-size" />
+          <input type="hidden" id="new-width" />
+          <input type="hidden" id="new-height" />
+        </div>
+
+        <!-- Additional Images -->
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Additional Images <span class="text-gray-600">({additionalImages.length})</span></label>
+          <div id="images-grid" class="flex flex-wrap gap-3 mb-3">
+            {additionalImages.map((img) => (
+              <div class="relative group" data-image-id={img.id}>
+                <img src={img.image_url} alt="" class="w-16 h-16 sm:w-24 sm:h-24 object-cover rounded-lg border border-gray-700" />
+                <button type="button" class="remove-image-btn absolute -top-2 -right-2 w-6 h-6 bg-red-600 hover:bg-red-500 text-white rounded-full text-xs sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center" data-image-id={img.id}>×</button>
+              </div>
+            ))}
+          </div>
+          <div class="flex gap-2 mb-0">
+            <button type="button" id="tab-add-upload" class="px-3 py-1 text-xs rounded-t-lg font-medium bg-gray-800 text-white border border-gray-700 border-b-0">Upload</button>
+            <button type="button" id="tab-add-scrape" class="px-3 py-1 text-xs rounded-t-lg font-medium bg-gray-900 text-gray-400 border border-gray-700 border-b-0 hover:text-white transition-colors">Scrape URL</button>
+          </div>
+          <div id="panel-add-upload" class="border border-gray-700 rounded-b-lg rounded-tr-lg p-3">
+            <div id="add-drop-zone" class="border-2 border-dashed border-gray-700 rounded-lg p-4 text-center hover:border-blue-500 transition-colors cursor-pointer">
+              <input type="file" id="add-image-input" accept="image/*" class="hidden" />
+              <p class="text-gray-400 text-sm">Drop image or click to add</p>
+            </div>
+          </div>
+          <div id="panel-add-scrape" class="hidden border border-gray-700 rounded-b-lg rounded-tr-lg p-3">
+            <div class="flex gap-2">
+              <input type="url" id="add-scrape-url" placeholder="https://..."
+                class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+              <button type="button" id="add-scrape-btn" class="bg-purple-600 hover:bg-purple-500 text-white font-medium px-3 py-1.5 rounded-lg transition-colors text-sm whitespace-nowrap">Fetch</button>
+            </div>
+          </div>
+          <div id="add-progress" class="hidden mt-2">
+            <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
+              <div id="add-progress-bar" class="h-full bg-blue-500 transition-all duration-300" style="width:0%"></div>
+            </div>
+            <p id="add-status" class="text-xs text-gray-500 mt-1"></p>
+          </div>
+        </div>
+
+        <!-- Prompt -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="prompt" class="text-sm text-gray-400">Prompt</label>
+            <button type="button" id="recover-prompt-btn"
+              class="text-xs bg-purple-600 hover:bg-purple-500 text-white px-2.5 py-1 rounded-md transition-colors"
+              title="Use vision AI to recover the generation prompt from the cover image">
+              Recover Prompt
+            </button>
+          </div>
+          <textarea id="prompt" name="prompt" rows="4"
+            class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          >{entry.prompt || ''}</textarea>
+        </div>
+
+        <!-- Negative Prompt -->
+        <div>
+          <label for="negative_prompt" class="block text-sm text-gray-400 mb-1">Negative Prompt</label>
+          <textarea id="negative_prompt" name="negative_prompt" rows="2"
+            class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          >{entry.negative_prompt || ''}</textarea>
+        </div>
+
+        <!-- Description + AI Analyze -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="description" class="text-sm text-gray-400">Description</label>
+            <div class="flex items-center gap-1.5">
+              <select id="ai-tier" class="text-xs bg-gray-800 border border-gray-700 text-gray-300 rounded-md px-1.5 py-1 focus:outline-none focus:border-purple-500">
+                <option value="fast">Fast</option>
+                <option value="balanced">Balanced</option>
+                <option value="quality">Quality</option>
+              </select>
+              <button type="button" id="analyze-btn" class="text-xs bg-purple-600 hover:bg-purple-500 text-white px-2.5 py-1 rounded-md transition-colors">Analyze</button>
+            </div>
+          </div>
+          <div id="ai-suggestions" class="hidden mb-3 ai-panel-enter"></div>
+          <textarea id="description" name="description" rows="6"
+            class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          >{entry.description || ''}</textarea>
+          <input type="hidden" id="ai-image-url" value={entry.image_url} />
+        </div>
+      </div>
+
+      <!-- RIGHT: Sidebar -->
+      <div class="lg:col-span-5">
+        <div class="lg:sticky lg:top-20 space-y-6">
+
+          <!-- Publish box -->
+          <div class="bg-gray-900 border border-gray-700 rounded-lg p-4 space-y-4">
+            <div class="flex gap-6 items-center">
+              <div>
+                <label for="status" class="block text-xs text-gray-400 mb-1">Status</label>
+                <select id="status" name="status" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                  <option value="draft" selected={entry.status === 'draft'}>Draft</option>
+                  <option value="published" selected={entry.status === 'published'}>Published</option>
+                </select>
+              </div>
+              <label class="inline-flex items-center gap-2 pt-4">
+                <input type="checkbox" id="featured" name="featured" checked={!!entry.featured} class="accent-blue-500" />
+                <span class="text-sm text-gray-400">Featured</span>
+              </label>
+            </div>
+            <div class="flex gap-3">
+              <button type="submit" id="submit-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-6 rounded-lg transition-colors text-sm">Save Changes</button>
+              <a href="/admin/gallery" class="text-gray-400 hover:text-white py-2 px-4 transition-colors text-sm">Cancel</a>
+            </div>
+          </div>
+
+          <!-- Title -->
+          <div>
+            <label for="title" class="block text-sm text-gray-400 mb-1">Title *</label>
+            <input type="text" id="title" name="title" required value={entry.title}
+              class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+          </div>
+
+          <!-- Model -->
+          <div>
+            <label for="model_id" class="block text-sm text-gray-400 mb-1">Model</label>
+            <select id="model_id" name="model_id" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              <option value="">— Select model —</option>
+              {models.map((m) => (
+                <option value={m.id} selected={m.id === entry.model_id}>{m.title} ({m.provider})</option>
+              ))}
+            </select>
+          </div>
+
+          <!-- Tags -->
+          <div>
+            <label class="block text-sm text-gray-400 mb-2">Tags</label>
+            <div class="flex gap-2 mb-3">
+              <input type="text" id="new-tag-input" placeholder="Add a tag..."
+                class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+              <button type="button" id="add-tag-btn" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">Add</button>
+            </div>
+            <div id="tag-list" class="flex flex-wrap gap-2">
+              {tags.map((t) => (
+                <label class="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-800 rounded-full text-sm hover:bg-gray-700 cursor-pointer transition-colors" data-tag-slug={t.slug}>
+                  <input type="checkbox" name="tag_ids" value={t.id} checked={entryTagIds.includes(t.id)} class="accent-blue-500" />
+                  <span>{t.title}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <!-- Source URL -->
+          <div>
+            <label for="source_url" class="block text-sm text-gray-400 mb-1">Source URL</label>
+            <input type="url" id="source_url" name="source_url" value={entry.source_url || ''}
+              class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+          </div>
+
+          <!-- Metadata -->
+          <div class="border-t border-gray-800 pt-4 text-xs text-gray-600 space-y-1">
+            <p>ID: {entry.id} · Slug: {entry.slug}</p>
+            <p>Created: {entry.created_at} · Updated: {entry.updated_at}</p>
+          </div>
+
+          <!-- Delete (danger zone, at bottom) -->
+          <div class="border-t border-gray-800 pt-4">
+            <button type="button" id="delete-btn"
+              class="text-sm text-red-400 hover:text-red-300 border border-red-800 hover:border-red-600 px-3 py-1.5 rounded-lg transition-colors">
+              Delete Entry
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <!-- Mobile save bar -->
+  <div class="fixed bottom-0 inset-x-0 lg:hidden bg-gray-900/95 backdrop-blur-sm border-t border-gray-700 px-4 py-3 z-40">
+    <div class="flex items-center justify-between max-w-screen-xl mx-auto">
+      <span id="mobile-status" class="text-xs text-gray-400 capitalize">{entry.status}</span>
+      <button type="submit" form="edit-form" id="mobile-save-btn"
+        class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium py-2 px-6 rounded-lg transition-colors">
+        Save
+      </button>
+    </div>
+  </div>
+
+  <script>
+    import { showMessage, setupDropZone, setupTabs, makeProg } from '@/lib/admin-ui';
+    import { uploadFile, scrapeImage } from '@/lib/admin-ui';
+    import type { UploadResult } from '@/lib/admin-ui';
+    import { initTagManager } from '@/lib/admin-ui';
+    import { initAIAnalyze, getAIAssisted } from '@/lib/admin-ui';
+
+    const form = document.getElementById('edit-form') as HTMLFormElement;
+    const entryId = form.dataset.entryId!;
+    const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+    const deleteBtn = document.getElementById('delete-btn') as HTMLButtonElement;
+    const msgEl = document.getElementById('message')!;
+    const msg = (text: string, isError: boolean) => showMessage(msgEl, text, isError);
+    let coverChanged = false;
+
+    // --- Cover image replace ---
+    const coverProg = makeProg('cover-progress-bar', 'cover-status', 'cover-progress');
+    setupTabs('tab-cover-upload', 'tab-cover-scrape', 'panel-cover-upload', 'panel-cover-scrape');
+    document.getElementById('replace-cover-toggle')!.addEventListener('click', () => document.getElementById('cover-replace')!.classList.toggle('hidden'));
+
+    document.getElementById('remove-cover-btn')!.addEventListener('click', () => {
+      if (!confirm('Remove the cover image?')) return;
+      (document.getElementById('cover-preview') as HTMLImageElement).src = '';
+      (document.getElementById('cover-preview') as HTMLImageElement).style.display = 'none';
+      document.getElementById('cover-key-text')!.textContent = '(no image)';
+      ['new-image-key', 'new-image-url', 'new-mime-type', 'new-file-size', 'new-width', 'new-height'].forEach((id) => { (document.getElementById(id) as HTMLInputElement).value = ''; });
+      coverChanged = true;
+      document.getElementById('cover-replace')!.classList.add('hidden');
+    });
+
+    function setCoverData(data: UploadResult) {
+      (document.getElementById('cover-preview') as HTMLImageElement).src = data.image_url;
+      document.getElementById('cover-key-text')!.textContent = data.image_key;
+      (document.getElementById('new-image-key') as HTMLInputElement).value = data.image_key;
+      (document.getElementById('new-image-url') as HTMLInputElement).value = data.image_url;
+      (document.getElementById('new-mime-type') as HTMLInputElement).value = data.mime_type;
+      (document.getElementById('new-file-size') as HTMLInputElement).value = String(data.file_size);
+      (document.getElementById('new-width') as HTMLInputElement).value = data.width ? String(data.width) : '';
+      (document.getElementById('new-height') as HTMLInputElement).value = data.height ? String(data.height) : '';
+      coverChanged = true;
+      document.getElementById('cover-replace')!.classList.add('hidden');
+      (document.getElementById('ai-image-url') as HTMLInputElement).value = data.image_url;
+    }
+
+    setupDropZone('cover-drop-zone', 'cover-file-input', async (file) => {
+      coverProg.show('Uploading...', 30);
+      try { coverProg.set(60); const data = await uploadFile(file); setCoverData(data); coverProg.set(100, 'Replaced ✓'); }
+      catch (err) { coverProg.set(0, `Error: ${(err as Error).message}`, true); }
+    });
+
+    const coverScrapeBtn = document.getElementById('cover-scrape-btn') as HTMLButtonElement;
+    const coverScrapeUrl = document.getElementById('cover-scrape-url') as HTMLInputElement;
+    async function handleCoverScrape() {
+      const url = coverScrapeUrl.value.trim(); if (!url) return;
+      coverScrapeBtn.disabled = true; coverScrapeBtn.textContent = 'Fetching...';
+      coverProg.show('Fetching...', 20);
+      try { coverProg.set(50); const data = await scrapeImage(url); setCoverData(data); coverProg.set(100, 'Replaced ✓'); coverScrapeUrl.value = ''; }
+      catch (err) { coverProg.set(0, `Error: ${(err as Error).message}`, true); }
+      finally { coverScrapeBtn.disabled = false; coverScrapeBtn.textContent = 'Fetch'; }
+    }
+    coverScrapeBtn.addEventListener('click', handleCoverScrape);
+    coverScrapeUrl.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); handleCoverScrape(); } });
+
+    // --- Additional images ---
+    const addProg = makeProg('add-progress-bar', 'add-status', 'add-progress');
+    setupTabs('tab-add-upload', 'tab-add-scrape', 'panel-add-upload', 'panel-add-scrape');
+
+    async function linkImage(data: UploadResult) {
+      const res = await fetch(`/api/entries/${entryId}/images`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      if (!res.ok) throw new Error((await res.json()).error || 'Link failed');
+      return await res.json();
+    }
+    function appendThumb(img: { id: number; image_url: string }) {
+      const div = document.createElement('div'); div.className = 'relative group'; div.dataset.imageId = String(img.id);
+      div.innerHTML = `<img src="${img.image_url}" alt="" class="w-16 h-16 sm:w-24 sm:h-24 object-cover rounded-lg border border-gray-700" /><button type="button" class="remove-image-btn absolute -top-2 -right-2 w-6 h-6 bg-red-600 hover:bg-red-500 text-white rounded-full text-xs sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center" data-image-id="${img.id}">×</button>`;
+      document.getElementById('images-grid')!.appendChild(div);
+    }
+
+    setupDropZone('add-drop-zone', 'add-image-input', async (file) => {
+      addProg.show('Uploading...', 30);
+      try { addProg.set(60); const data = await uploadFile(file); addProg.set(80, 'Linking...'); const img = await linkImage(data); appendThumb(img); addProg.set(100, 'Added ✓'); (document.getElementById('add-image-input') as HTMLInputElement).value = ''; }
+      catch (err) { addProg.set(0, `Error: ${(err as Error).message}`, true); }
+    });
+
+    const addScrapeBtn = document.getElementById('add-scrape-btn') as HTMLButtonElement;
+    const addScrapeUrl = document.getElementById('add-scrape-url') as HTMLInputElement;
+    async function handleAddScrape() {
+      const url = addScrapeUrl.value.trim(); if (!url) return;
+      addScrapeBtn.disabled = true; addScrapeBtn.textContent = 'Fetching...';
+      addProg.show('Fetching...', 20);
+      try { addProg.set(50); const data = await scrapeImage(url); addProg.set(80, 'Linking...'); const img = await linkImage(data); appendThumb(img); addProg.set(100, 'Added ✓'); addScrapeUrl.value = ''; }
+      catch (err) { addProg.set(0, `Error: ${(err as Error).message}`, true); }
+      finally { addScrapeBtn.disabled = false; addScrapeBtn.textContent = 'Fetch'; }
+    }
+    addScrapeBtn.addEventListener('click', handleAddScrape);
+    addScrapeUrl.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddScrape(); } });
+
+    document.getElementById('images-grid')!.addEventListener('click', async (e) => {
+      const btn = (e.target as HTMLElement).closest('.remove-image-btn') as HTMLElement | null; if (!btn) return;
+      if (!confirm('Remove this image?')) return;
+      btn.textContent = '...';
+      try { const res = await fetch(`/api/entries/${entryId}/images?image_id=${btn.dataset.imageId}`, { method: 'DELETE' }); if (!res.ok) throw new Error('Delete failed'); btn.closest('[data-image-id]')?.remove(); }
+      catch (err) { msg((err as Error).message, true); btn.textContent = '×'; }
+    });
+
+    // --- Tags + AI ---
+    initTagManager({ inputId: 'new-tag-input', btnId: 'add-tag-btn', listId: 'tag-list', onMessage: msg });
+    initAIAnalyze({ btnId: 'analyze-btn', tierId: 'ai-tier', promptId: 'prompt', descriptionId: 'description', titleId: 'title', tagListId: 'tag-list', suggestionsId: 'ai-suggestions', imageUrlId: 'ai-image-url', onMessage: msg });
+
+    // --- Vision Analysis (one-click fill from image) ---
+    const recoverBtn = document.getElementById('recover-prompt-btn') as HTMLButtonElement;
+    recoverBtn.addEventListener('click', async () => {
+      const imageUrl = (document.getElementById('ai-image-url') as HTMLInputElement)?.value;
+      if (!imageUrl) { msg('No cover image — upload one first.', true); return; }
+      recoverBtn.disabled = true; recoverBtn.textContent = 'Analyzing…';
+      try {
+        const res = await fetch('/api/analyze', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'vision-prompt', imageUrl }),
+        });
+        if (!res.ok) throw new Error((await res.json()).error || 'Vision analysis failed');
+        const data = await res.json();
+        let filled = 0;
+        if (data.title) { (document.getElementById('title') as HTMLInputElement).value = data.title; filled++; }
+        if (data.recoveredPrompt) { (document.getElementById('prompt') as HTMLTextAreaElement).value = data.recoveredPrompt; filled++; }
+        if (data.description) { (document.getElementById('description') as HTMLTextAreaElement).value = data.description; filled++; }
+        // Check matching tags
+        const allTags = [...(data.tags || []), ...(data.newTags || [])];
+        if (allTags.length > 0) {
+          const checkboxes = document.querySelectorAll<HTMLInputElement>('#tag-list input[type="checkbox"]');
+          checkboxes.forEach((cb) => {
+            const label = cb.closest('label');
+            const slug = label?.dataset.tagSlug?.toLowerCase() || '';
+            const text = label?.querySelector('span')?.textContent?.toLowerCase() || '';
+            if (allTags.some((t: string) => t === slug || t === text)) { cb.checked = true; filled++; }
+          });
+        }
+        if (filled > 0) {
+          msg(`Vision filled ${filled} field${filled > 1 ? 's' : ''} via ${data.visionModel?.split('/').pop() || 'vision'}`, false);
+        } else if (data.raw) {
+          (document.getElementById('prompt') as HTMLTextAreaElement).value = data.raw;
+          msg(`Vision didn't return structured output — raw response in prompt field`, true);
+        } else { msg('Vision model returned empty response.', true); }
+      } catch (err) { msg((err as Error).message, true); }
+      finally { recoverBtn.disabled = false; recoverBtn.textContent = 'Recover Prompt'; }
+    });
+
+    // --- Form submit ---
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      submitBtn.disabled = true; submitBtn.textContent = 'Saving...';
+      const tagIds = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="tag_ids"]:checked')).map(cb => Number(cb.value));
+      const payload: Record<string, unknown> = {
+        title: (document.getElementById('title') as HTMLInputElement).value,
+        prompt: (document.getElementById('prompt') as HTMLTextAreaElement).value || undefined,
+        negative_prompt: (document.getElementById('negative_prompt') as HTMLTextAreaElement).value || undefined,
+        description: (document.getElementById('description') as HTMLTextAreaElement).value || undefined,
+        model_id: Number((document.getElementById('model_id') as HTMLSelectElement).value) || undefined,
+        source_url: (document.getElementById('source_url') as HTMLInputElement).value || undefined,
+        status: (document.getElementById('status') as HTMLSelectElement).value,
+        featured: (document.getElementById('featured') as HTMLInputElement).checked,
+        tag_ids: tagIds,
+        metadata: { ai_assisted: getAIAssisted() },
+      };
+      if (coverChanged) {
+        payload.image_key = (document.getElementById('new-image-key') as HTMLInputElement).value;
+        payload.image_url = (document.getElementById('new-image-url') as HTMLInputElement).value;
+        payload.mime_type = (document.getElementById('new-mime-type') as HTMLInputElement).value;
+        payload.file_size = Number((document.getElementById('new-file-size') as HTMLInputElement).value) || undefined;
+        payload.width = Number((document.getElementById('new-width') as HTMLInputElement).value) || undefined;
+        payload.height = Number((document.getElementById('new-height') as HTMLInputElement).value) || undefined;
+      }
+      try {
+        const res = await fetch(`/api/entries/${entryId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error((await res.json()).error || 'Update failed');
+        msg('Saved ✓', false);
+      } catch (err) { msg((err as Error).message, true); }
+      finally { submitBtn.disabled = false; submitBtn.textContent = 'Save Changes'; }
+    });
+
+    // --- Mobile save bar sync ---
+    const statusSelect = document.getElementById('status') as HTMLSelectElement;
+    const mobileStatus = document.getElementById('mobile-status');
+    if (mobileStatus) {
+      statusSelect.addEventListener('change', () => { mobileStatus.textContent = statusSelect.value; });
+    }
+
+    // --- Delete entry ---
+    deleteBtn.addEventListener('click', async () => {
+      if (!confirm('Delete this entry and all its images? This cannot be undone.')) return;
+      deleteBtn.disabled = true; deleteBtn.textContent = 'Deleting...';
+      try {
+        const res = await fetch(`/api/entries/${entryId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error((await res.json()).error || 'Delete failed');
+        window.location.href = '/admin';
+      } catch (err) { msg((err as Error).message, true); deleteBtn.disabled = false; deleteBtn.textContent = 'Delete Entry'; }
+    });
+  </script>
+</AdminLayout>
