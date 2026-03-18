@@ -61,6 +61,19 @@ const metaBlogTopics = (await settings.get('meta_desc_blog_topics')) || '';
       </div>
     </section>
 
+    <!-- Hero Live Preview -->
+    <div class="bg-gray-950 rounded-lg p-6 border border-gray-800">
+      <p class="text-[10px] text-gray-600 uppercase tracking-wider mb-3">Preview</p>
+      <div class="text-center">
+        <h3 id="preview-title" class="text-3xl tracking-tight text-white mb-2"></h3>
+        <p id="preview-subtitle" class="text-gray-400 text-sm mb-4"></p>
+        <div class="flex items-center justify-center gap-2">
+          <span id="preview-cta1" class="inline-block px-4 py-1.5 bg-accent text-white text-xs rounded-lg"></span>
+          <span id="preview-cta2" class="inline-block px-4 py-1.5 border border-accent/40 text-accent text-xs rounded-lg"></span>
+        </div>
+      </div>
+    </div>
+
     <!-- Header Links -->
     <section class="bg-gray-900 rounded-lg p-5 border border-gray-700">
       <div class="flex items-center justify-between mb-4">
@@ -139,6 +152,24 @@ const metaBlogTopics = (await settings.get('meta_desc_blog_topics')) || '';
   <script id="footer-links-data" type="application/json" set:html={JSON.stringify(footerLinks)} />
 
   <script>
+    // --- Hero live preview ---
+    const previewTitle = document.getElementById('preview-title')!;
+    const previewSubtitle = document.getElementById('preview-subtitle')!;
+    const previewCta1 = document.getElementById('preview-cta1')!;
+    const previewCta2 = document.getElementById('preview-cta2')!;
+
+    function updatePreview() {
+      previewTitle.innerHTML = (document.getElementById('hero-title') as HTMLInputElement).value || 'Your Title';
+      previewSubtitle.textContent = (document.getElementById('hero-subtitle') as HTMLInputElement).value || 'Your subtitle here';
+      previewCta1.textContent = (document.getElementById('cta1-text') as HTMLInputElement).value || 'Browse Gallery';
+      previewCta2.textContent = (document.getElementById('cta2-text') as HTMLInputElement).value || 'Read the Blog';
+    }
+
+    ['hero-title', 'hero-subtitle', 'cta1-text', 'cta2-text'].forEach((id) => {
+      document.getElementById(id)?.addEventListener('input', updatePreview);
+    });
+    updatePreview();
+
     const msgEl = document.getElementById('message')!;
     function showMsg(text: string, isError: boolean) {
       msgEl.textContent = text;

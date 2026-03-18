@@ -1,0 +1,133 @@
+---
+import Icon from '@/components/Icon.astro';
+import type { OnboardingState } from '@/lib/data/onboarding';
+
+interface Props {
+  state: OnboardingState;
+}
+
+const { state } = Astro.props;
+if (state.dismissed) return;
+
+interface Step {
+  key: string;
+  label: string;
+  hint: string;
+  icon: string;
+  done: boolean;
+  href?: string;
+  action?: string;
+  showWhen?: boolean;
+}
+
+const steps: Step[] = [
+  { key: 'personalize', label: 'Personalize your site', hint: 'Set your name, tagline, and hero text', icon: 'palette', done: state.sitePersonalized, href: '/admin/site-config' },
+  { key: 'upload', label: 'Upload your first artwork', hint: 'Add an image and click Analyze for AI suggestions', icon: 'image', done: state.hasRealEntry, href: '/admin/new' },
+  { key: 'ai', label: 'Try AI Analyze', hint: 'Let AI generate title, tags, and description', icon: 'sparkles', done: state.hasUsedAI, href: '/admin/new' },
+  { key: 'blog', label: 'Write your first blog post', hint: 'Share your creative process', icon: 'pen-line', done: state.hasRealBlogPost, href: '/admin/blog/new' },
+  { key: 'samples', label: 'Remove sample content', hint: 'Clean up placeholder entries', icon: 'trash-2', done: !state.hasSampleContent, action: 'clear-samples', showWhen: state.hasRealEntry },
+  { key: 'security', label: 'Secure your admin panel', hint: 'Set up Cloudflare Zero Trust access', icon: 'shield-check', done: false, href: 'https://developers.cloudflare.com/cloudflare-one/applications/' },
+];
+
+const visible = steps.filter((s) => s.showWhen === undefined || s.showWhen);
+const completed = visible.filter((s) => s.done).length;
+const total = visible.length;
+const allDone = completed === total;
+if (allDone) return;
+
+const pct = Math.round((completed / total) * 100);
+---
+
+<div class="mb-8 bg-gray-900 border border-gray-700 rounded-lg overflow-hidden" id="onboarding">
+  <!-- Header -->
+  <div class="px-4 py-3 flex items-center justify-between border-b border-gray-800">
+    <div class="flex items-center gap-2">
+      <Icon name="rocket" size={16} class="text-accent" />
+      <span class="text-sm font-semibold text-gray-200">Get Started</span>
+      <span class="text-xs text-gray-500">{completed} of {total}</span>
+    </div>
+    <button
+      type="button"
+      class="text-[10px] text-gray-600 hover:text-gray-400 transition-colors"
+      data-dismiss="onboarding"
+    >dismiss</button>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="h-1 bg-gray-800">
+    <div class="h-full bg-accent transition-all duration-500" style={`width:${pct}%`}></div>
+  </div>
+
+  <!-- Steps -->
+  <div class="divide-y divide-gray-800/50">
+    {visible.map((step, i) => {
+      const isCurrent = !step.done && visible.slice(0, i).every((s) => s.done);
+      return (
+        <div class:list={[
+          'flex items-center gap-3 px-4 py-3 transition-colors',
+          step.done ? 'opacity-50' : isCurrent ? 'bg-accent/5 border-l-2 border-l-accent' : '',
+        ]}>
+          <span class:list={[
+            'w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px]',
+            step.done ? 'bg-green-600 text-white' : 'bg-gray-800 text-gray-500',
+          ]}>
+            {step.done ? (
+              <Icon name="check" size={12} />
+            ) : (
+              <Icon name={step.icon} size={12} />
+            )}
+          </span>
+          <div class="flex-1 min-w-0">
+            <p class:list={['text-sm', step.done ? 'text-gray-500 line-through' : 'text-gray-200 font-medium']}>
+              {step.label}
+            </p>
+            {!step.done && (
+              <p class="text-[11px] text-gray-500 mt-0.5">{step.hint}</p>
+            )}
+          </div>
+          {!step.done && step.href && (
+            <a href={step.href} class="text-xs text-accent hover:text-accent/80 shrink-0 transition-colors">
+              Go →
+            </a>
+          )}
+          {!step.done && step.action === 'clear-samples' && (
+            <button
+              type="button"
+              class="text-xs text-red-400 hover:text-red-300 shrink-0 transition-colors"
+              data-action="clear-samples"
+            >Remove</button>
+          )}
+        </div>
+      );
+    })}
+  </div>
+</div>
+
+<script>
+  // Dismiss onboarding
+  document.querySelector('[data-dismiss="onboarding"]')?.addEventListener('click', async () => {
+    await fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ onboarding_dismissed: 'true' }),
+    });
+    document.getElementById('onboarding')?.remove();
+  });
+
+  // Clear sample content
+  document.querySelector('[data-action="clear-samples"]')?.addEventListener('click', async (e) => {
+    const btn = e.target as HTMLButtonElement;
+    btn.textContent = 'Removing…';
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/admin/clear-samples', { method: 'POST' });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        btn.textContent = 'Failed';
+      }
+    } catch {
+      btn.textContent = 'Failed';
+    }
+  });
+</script>

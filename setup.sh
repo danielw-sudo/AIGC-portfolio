@@ -150,6 +150,24 @@ npx wrangler d1 execute "$DB_NAME" --remote --file=migrations/0002_seed_models.s
 }
 ok "Database ready."
 
+# ── Upload Sample Content to R2 ──────────────────────────────────
+info "Uploading sample images to R2..."
+for SVG_FILE in public/samples/sample-1.svg public/samples/sample-2.svg public/samples/sample-3.svg; do
+  KEY="samples/$(basename "$SVG_FILE")"
+  npx wrangler r2 object put "$BUCKET_NAME/$KEY" --file="$SVG_FILE" --content-type="image/svg+xml" 2>/dev/null || \
+    warn "Could not upload $KEY (non-fatal)."
+done
+ok "Sample images uploaded."
+
+info "Seeding sample content..."
+# Replace R2 URL placeholder and execute
+sed "s|R2_PUBLIC_URL_PLACEHOLDER|${R2_PUBLIC_URL%/}|g" migrations/0010_seed_content.sql > /tmp/seed_content_resolved.sql
+npx wrangler d1 execute "$DB_NAME" --remote --file=/tmp/seed_content_resolved.sql || {
+  warn "Sample content seed skipped (may already exist)."
+}
+rm -f /tmp/seed_content_resolved.sql
+ok "Sample content seeded."
+
 # ── Install & Deploy ───────────────────────────────────────────────
 info "Installing dependencies..."
 npm install --silent
@@ -190,7 +208,7 @@ echo -e "  ${BOLD}R2 Bucket:${NC}    $BUCKET_NAME"
 echo -e "  ${BOLD}Worker:${NC}       aigc-portfolio"
 echo ""
 echo -e "  ${BOLD}Next steps:${NC}"
-echo "  1. Visit your worker URL → /admin to configure your site"
+echo "  1. Visit your worker URL → /admin (the setup checklist will guide you)"
 echo "  2. Set up Zero Trust to protect /admin (see src/QuickStart/SETUP.md Step 7)"
 echo "  3. (Optional) Add AI provider keys:"
 echo "     npx wrangler secret put NVIDIA_API_KEY"

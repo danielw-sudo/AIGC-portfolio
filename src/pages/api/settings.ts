@@ -8,6 +8,7 @@ const ALLOWED_KEYS = [
   'site_header_links', 'site_footer_links',
   'meta_desc_home', 'meta_desc_gallery', 'meta_desc_tags',
   'meta_desc_models', 'meta_desc_blog', 'meta_desc_blog_topics',
+  'onboarding_dismissed',
 ];
 
 export async function GET(context: APIContext) {

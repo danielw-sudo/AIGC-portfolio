@@ -51,6 +51,14 @@
 - [x] Admin quick-start guide improvements
 - [ ] Contributing guide
 
+### Phase 4e — Onboarding Experience
+- [x] Seed content migration (3 SVG gallery entries, 1 welcome blog post, 3 tags, hero defaults)
+- [x] Smart onboarding checklist — replaces static Quick Start Guide, detects real progress
+- [x] Clear samples API — one-click removal of all placeholder content
+- [x] Enhanced public homepage empty state (ghost skeleton grid)
+- [x] Hero live preview in Site Config (real-time as-you-type)
+- [x] setup.sh updated: uploads SVGs to R2, seeds content, improved next-steps message
+
 ### Phase 5 — Chatbot Setup Assistant (future)
 - [ ] Web-based chatbot guiding users through fork → deploy flow
 - [ ] Step-by-step CF dashboard instructions with context awareness

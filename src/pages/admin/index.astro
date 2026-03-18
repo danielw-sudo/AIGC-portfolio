@@ -1,9 +1,11 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import Icon from '@/components/Icon.astro';
+import OnboardingChecklist from '@/components/admin/OnboardingChecklist.astro';
 import { EntryService, SettingsService, AIUsageService } from '@/lib/data';
 import { BlogPostService } from '@/lib/data/blog';
 import { AI_MODEL_CATALOG } from '@/lib/ai/models';
+import { getOnboardingState } from '@/lib/data/onboarding';
 
 const { env } = Astro.locals.runtime;
 const entries = new EntryService(env.DB);
@@ -11,12 +13,13 @@ const blog = new BlogPostService(env.DB);
 const settings = new SettingsService(env.DB);
 const usage = new AIUsageService(env.DB);
 
-const [entryStats, blogStats, allSettings, aiStats, aiTotal] = await Promise.all([
+const [entryStats, blogStats, allSettings, aiStats, aiTotal, onboarding] = await Promise.all([
   entries.listAllFiltered({ perPage: 1 }),
   blog.listAllFiltered({ perPage: 1 }),
   settings.getAll(),
   usage.getStats24h(),
   usage.getTotal24h(),
+  getOnboardingState(env.DB),
 ]);
 
 const entryTotal = entryStats.total;
@@ -73,54 +76,8 @@ const maxLatency = Math.max(...aiStats.map((r) => r.avg_latency_ms), 1);
     </a>
   </div>
 
-  <!-- Quick Start Guide -->
-  <details class="mb-8 bg-gray-900 border border-gray-700 rounded-lg text-sm">
-    <summary class="cursor-pointer px-4 py-2.5 text-gray-400 hover:text-white select-none transition-colors flex items-center gap-2">
-      <span class="shrink-0"><Icon name="file-text" size={16} /></span>
-      <span class="font-medium">Quick Start Guide</span>
-      <span class="ml-auto text-[10px] text-gray-600">click to expand</span>
-    </summary>
-    <div class="px-4 pb-4 pt-2 text-gray-400 space-y-4 text-xs leading-relaxed">
-      <p class="text-gray-500 font-medium uppercase tracking-wider text-[10px]">Content Management</p>
-      <ul class="space-y-2 ml-1">
-        <li class="flex gap-2">
-          <span class="shrink-0 mt-0.5"><Icon name="image" size={14} /></span>
-          <span><strong class="text-gray-300">Create Gallery</strong> — Upload an image, add title and prompt, click Analyze for AI suggestions, then publish.</span>
-        </li>
-        <li class="flex gap-2">
-          <span class="shrink-0 mt-0.5"><Icon name="pen-line" size={14} /></span>
-          <span><strong class="text-gray-300">Write Blog Posts</strong> — Markdown editor with AI-assisted drafting and topic tagging.</span>
-        </li>
-        <li class="flex gap-2">
-          <span class="shrink-0 mt-0.5"><Icon name="sparkles" size={14} /></span>
-          <span><strong class="text-gray-300">AI Analyze</strong> — One-click analysis generates title, description, and tags from your images.</span>
-        </li>
-        <li class="flex gap-2">
-          <span class="shrink-0 mt-0.5"><Icon name="file-check" size={14} /></span>
-          <span><strong class="text-gray-300">Draft → Publish</strong> — All content starts as draft. Review before publishing.</span>
-        </li>
-      </ul>
-      <p class="text-gray-500 font-medium uppercase tracking-wider text-[10px] pt-2">Developer Mode</p>
-      <ul class="space-y-2 ml-1">
-        <li class="flex gap-2">
-          <span class="shrink-0 mt-0.5"><Icon name="settings" size={14} /></span>
-          <span><strong class="text-gray-300">AI Settings</strong> — Switch providers (CF Workers AI, NVIDIA, Google), tune system prompts.</span>
-        </li>
-        <li class="flex gap-2">
-          <span class="shrink-0 mt-0.5"><Icon name="message-square" size={14} /></span>
-          <span><strong class="text-gray-300">Chat Butler</strong> — Test AI models interactively with full conversation history.</span>
-        </li>
-        <li class="flex gap-2">
-          <span class="shrink-0 mt-0.5"><Icon name="shield-check" size={14} /></span>
-          <span><strong class="text-gray-300">Site Audit</strong> — Content health, image integrity, SEO checks, R2 orphan cleanup.</span>
-        </li>
-        <li class="flex gap-2">
-          <span class="shrink-0 mt-0.5"><Icon name="code" size={14} /></span>
-          <span><strong class="text-gray-300">Developer Hub</strong> — DB management, AI usage monitor, site configuration.</span>
-        </li>
-      </ul>
-    </div>
-  </details>
+  <!-- Onboarding Checklist (replaces static Quick Start Guide) -->
+  <OnboardingChecklist state={onboarding} />
 
   <!-- Stats -->
   <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">

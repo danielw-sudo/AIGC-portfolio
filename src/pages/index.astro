@@ -145,10 +145,17 @@ const cta2Url = siteConfig.heroCta2.url || '/blog';
     </section>
   )}
 
-  <!-- Empty state fallback -->
+  <!-- Empty state fallback — ghost grid -->
   {featuredEntries.length === 0 && featuredBlog.length === 0 && (
-    <section class="max-w-3xl mx-auto px-4 pb-16 text-center">
-      <p class="text-text-muted">No content yet. Start by uploading artwork in the admin panel.</p>
+    <section class="max-w-6xl mx-auto px-4 pb-16">
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+        {[1, 2, 3].map(() => (
+          <div class="aspect-[4/5] rounded-xl bg-surface-secondary animate-pulse" />
+        ))}
+      </div>
+      <p class="text-center text-text-muted text-sm">
+        This gallery is being set up. Check back soon!
+      </p>
     </section>
   )}
 </MainLayout>
