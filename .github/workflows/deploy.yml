@@ -3,13 +3,26 @@ name: Deploy to Cloudflare Workers
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # On push: only run if the token exists (silent skip for template forks)
+    # On workflow_dispatch: always run (user explicitly triggered)
+    if: ${{ github.event_name == 'workflow_dispatch' || secrets.CLOUDFLARE_API_TOKEN != '' }}
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
+      - name: Check credentials
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN secret is not set."
+            echo "Add it under Settings → Secrets and variables → Actions → New repository secret."
+            echo "See src/QuickStart/SETUP.md Step 4 for details."
+            exit 1
+          fi
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4

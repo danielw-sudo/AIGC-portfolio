@@ -132,9 +132,11 @@ Also update `robots.txt` with your actual domain for the Sitemap URL.
 
 ### Step 5: Deploy
 
-Push any commit to `main` — GitHub Actions will build and deploy automatically.
+**First deploy:** Go to your repo's **Actions** tab and click **"Deploy to Cloudflare Workers"** → **Run workflow**. This lets you verify everything works before enabling auto-deploy.
 
-Or deploy manually:
+**After that:** every push to `main` will auto-deploy via GitHub Actions (requires the `CLOUDFLARE_API_TOKEN` secret from Step 4).
+
+Or deploy from the command line:
 
 ```bash
 npm run deploy
@@ -351,9 +353,11 @@ npm install
 
 ### 步骤 5: 部署
 
-向 `main` 分支推送任何提交 —— GitHub Actions 将自动构建并部署。
+**首次部署：** 前往仓库的 **Actions** 标签页，点击 **"Deploy to Cloudflare Workers"** → **Run workflow**。这样可以在启用自动部署前验证一切正常。
 
-或者手动部署：
+**之后：** 每次向 `main` 推送代码都会通过 GitHub Actions 自动部署（需要步骤 4 中设置的 `CLOUDFLARE_API_TOKEN` secret）。
+
+或者通过命令行部署：
 
 ```bash
 npm run deploy
@@ -570,9 +574,11 @@ npm install
 
 ### ステップ 5: デプロイ
 
-`main` ブランチにコミットをプッシュすると、GitHub Actions が自動的にビルドとデプロイを行います。
+**初回デプロイ：** リポジトリの **Actions** タブで **"Deploy to Cloudflare Workers"** → **Run workflow** をクリックします。自動デプロイを有効にする前に、すべてが正しく動作することを確認できます。
 
-または手動でデプロイします：
+**以降：** `main` ブランチへのプッシュごとに GitHub Actions で自動デプロイされます（ステップ 4 の `CLOUDFLARE_API_TOKEN` secret が必要です）。
+
+またはコマンドラインからデプロイ：
 
 ```bash
 npm run deploy
