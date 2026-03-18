@@ -25,6 +25,20 @@
 - [x] Reduces manual steps 2–6 of SETUP.md to one command
 - [x] For users who have Node.js + wrangler installed locally
 
+### Feature Parity with Pilot (Phase 4d)
+- [x] React removal — pure Astro, zero client framework dependencies
+- [x] Lucide icons via `lucide-static` (server-rendered SVGs, zero client JS)
+- [x] Provider-agnostic AI module (TextProvider/VisionProvider interfaces, cf-provider.ts coupling)
+- [x] Chat Butler — interactive AI chat with session persistence, model picker, markdown export
+- [x] Site Audit page — content/image/SEO health checks, R2 orphan cleanup
+- [x] Developer Hub — tool cards, AI usage monitor with per-model breakdown
+- [x] Admin nav restructure: Gallery | Blog | Pages | Chat || Audit | Developer
+- [x] Plus Jakarta Sans display font, heroReveal/blurFadeIn animations, motion utilities
+- [x] Upgraded welcome guide with Lucide icons and Developer Mode section
+- [x] Tag/topic normalize endpoints, date formatter, client-side icon helper
+- [x] Draft-first publishing (already existed — confirmed parity)
+- [x] AI usage logging on all endpoints (already existed — confirmed parity)
+
 ---
 
 ## Planned
@@ -34,7 +48,7 @@
 - [x] Multilingual README split (EN, ZH, JA)
 - [x] Agentic Handoff config (`.antigravity/rules.md`)
 - [ ] Screenshot walkthrough for SETUP.md
-- [ ] Admin quick-start guide improvements
+- [x] Admin quick-start guide improvements
 - [ ] Contributing guide
 
 ### Phase 5 — Chatbot Setup Assistant (future)
@@ -46,8 +60,8 @@
 ### Ideas (unscheduled)
 - [ ] Gallery public search page
 - [ ] Blog card excerpts on home page
-- [ ] Tag title case normalization
-- [ ] Date format standardization (ISO vs locale)
+- [x] Tag title case normalization
+- [x] Date format standardization (ISO vs locale)
 - [ ] Hide zero-count models/tags from listings
 - [ ] Logomark concept
 - [ ] llms.txt for AI discoverability
@@ -103,6 +117,18 @@ The foundation supports growth toward AI-as-a-Service. Current readiness: **~60%
 ---
 
 ## Release History
+
+### v1.3.0 (2026-03-17) — Feature Parity with Pilot
+- Ported all features from private pilot project (artwhisper) to open-source template. `39d0644`
+- **React removal**: Deleted `ThemeToggle.tsx`, replaced with pure Astro component. Removed `@astrojs/react`, `react`, `react-dom` deps.
+- **Lucide icons**: Added `Icon.astro` (server-rendered SVGs via `lucide-static`) + `icons.ts` client-side helper.
+- **AI module refactor**: Introduced `TextProvider`/`VisionProvider` type aliases. `cf-provider.ts` is now the single Cloudflare coupling point. `AIService` and `VisionService` constructors are provider-agnostic.
+- **Chat Butler**: Full admin chat UI with multi-model picker, session persistence (sessionStorage), markdown export. 3 client modules (`chat-engine.ts`, `chat-renderer.ts`, `chat-storage.ts`) + API endpoint.
+- **Site Audit**: 8 parallel D1 health queries + R2 orphan scan. Dry-run and delete modes for cleanup.
+- **Developer Hub**: Tool cards linking to AI Settings, Site Config, DB Management, CF Analytics. AI usage monitor with per-model volume/latency bars.
+- **UX polish**: Plus Jakarta Sans display font, `heroReveal` (letter-spacing animation), `blurFadeIn`, reusable `.animate-*` utilities. Welcome guide upgraded with Icon components.
+- **Data hygiene**: Tag/topic normalize endpoints (`POST /api/tags/normalize`, `POST /api/blog-topics/normalize`). `toTitleCase` + `formatDate` utilities.
+- **40 files changed**, 1521 insertions, 1341 deletions.
 
 ### v1.2.0 (2026-03-07) — Agentic Handoff & Docs Refactor
 - Consolidated QuickStart docs (`DEPLOY_WITH_AI.md`, `SETUP.md`, `how-to-get-free-test-api.md`) into `src/QuickStart/`.

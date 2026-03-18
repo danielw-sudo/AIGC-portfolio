@@ -1,7 +1,7 @@
 # AIGC-portfolio — Claude Code Context
 # Github: danielw-sudo/AIGC-portfolio (or your fork)
 # Local: .../AIGC-portfolio — assign the local directory to keep the working path accurate
-# Updated: 2026-03-08
+# Updated: 2026-03-17
 
 ---
 
@@ -51,12 +51,12 @@ src/
 ├── layouts/           MainLayout, AdminLayout
 ├── lib/
 │   ├── ai/            Multi-provider AI routing (@cf/, @nv/, @google/)
-│   ├── core/          R2 ops, image dimensions, types, slugify
-│   ├── data/          D1 query builders (entries, blog, pages, settings, taxonomy)
-│   └── admin-ui/      Client-side admin helpers (AI analysis, uploads, forms)
+│   ├── core/          R2 ops, image dimensions, types, slugify, date formatting
+│   ├── data/          D1 query builders (entries, blog, pages, settings, taxonomy, audit, usage)
+│   └── admin-ui/      Client-side admin helpers (AI analysis, uploads, forms, chat/)
 ├── pages/
-│   ├── admin/         Admin panel (gallery, blog, pages, models, tags, settings)
-│   ├── api/           REST endpoints (CRUD, AI analyze, upload, import)
+│   ├── admin/         Admin panel (gallery, blog, pages, chat, audit, developer, settings)
+│   ├── api/           REST endpoints (CRUD, AI analyze, upload, import, chat, normalize)
 │   ├── blog/          Public blog routes
 │   ├── gallery/       Public gallery (index only — detail via [slug])
 │   ├── models/        Model listing/detail
@@ -71,7 +71,7 @@ src/
 
 | File | Purpose |
 |---|---|
-| `schema.sql` | Full D1 schema (12 tables, 15 indexes) |
+| `schema.sql` | Full D1 schema (13 tables incl. ai_usage, 15+ indexes) |
 | `wrangler.json` | CF Workers bindings (DB, IMAGES, AI, env vars) |
 | `setup.sh` | Automated D1/R2 provisioning + deploy |
 | `astro.config.mjs` | SSR + Cloudflare adapter + Tailwind V4 |
@@ -87,6 +87,7 @@ Providers are selected via string prefix on the model ID:
 - `@nv/...` → NVIDIA NIM (API call)
 - `@google/...` → Google Gemini (API call)
 
+Provider coupling: `src/lib/ai/cf-provider.ts` (TextProvider + VisionProvider factories)
 Routing logic: `src/lib/ai/service.ts`
 Model registry: `src/lib/ai/models.ts`
 Dashboard toggle: users switch providers + edit system prompts from `/admin/settings`
@@ -122,11 +123,11 @@ GitHub Actions: auto-deploys on push to `main`.
 
 ## Database
 
-12 tables: models, tags, entries, entry_tags, entry_images, pages, page_tags,
-settings, blog_topics, blog_posts, blog_post_topics, _migrations.
+13 tables: models, tags, entries, entry_tags, entry_images, pages, page_tags,
+settings, blog_topics, blog_posts, blog_post_topics, ai_usage, _migrations.
 
 Schema: `schema.sql`
-Migrations: `migrations/0001_initial.sql` through `migrations/0008_migrations.sql`
+Migrations: `migrations/0001_initial.sql` through `migrations/0009_prompt_params.sql`
 
 ---
 
