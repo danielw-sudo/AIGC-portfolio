@@ -152,9 +152,9 @@ ok "Database ready."
 
 # ── Upload Sample Content to R2 ──────────────────────────────────
 info "Uploading sample images to R2..."
-for SVG_FILE in public/samples/sample-1.svg public/samples/sample-2.svg public/samples/sample-3.svg; do
-  KEY="samples/$(basename "$SVG_FILE")"
-  npx wrangler r2 object put "$BUCKET_NAME/$KEY" --file="$SVG_FILE" --content-type="image/svg+xml" 2>/dev/null || \
+for IMG_FILE in public/samples/sample-kittens.jpg public/samples/sample-whale-ride.jpg public/samples/sample-winter-village.jpg; do
+  KEY="samples/$(basename "$IMG_FILE")"
+  npx wrangler r2 object put "$BUCKET_NAME/$KEY" --file="$IMG_FILE" --content-type="image/jpeg" 2>/dev/null || \
     warn "Could not upload $KEY (non-fatal)."
 done
 ok "Sample images uploaded."

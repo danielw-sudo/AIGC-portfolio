@@ -20,7 +20,7 @@ These are estimates based on Cloudflare's [neuron budget](https://developers.clo
 
 **Steps:**
 1. Create a free Cloudflare account at [dash.cloudflare.com](https://dash.cloudflare.com)
-2. Deploy the project following [SETUP.md](./SETUP.md)
+2. Deploy the project following [SETUP.md](./SETUP-en.md)
 3. Workers AI works automatically — no extra configuration needed
 
 ---

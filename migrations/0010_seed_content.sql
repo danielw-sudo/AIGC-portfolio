@@ -7,22 +7,22 @@ INSERT OR IGNORE INTO tags (slug, title) VALUES
   ('portrait', 'Portrait'),
   ('abstract', 'Abstract');
 
--- Sample gallery entries (placeholder SVGs uploaded to R2 by setup.sh)
+-- Sample gallery entries (images uploaded to R2 by setup.sh)
 INSERT INTO entries (slug, title, prompt, description, image_key, image_url, width, height, mime_type, status, featured, source_type) VALUES
-  ('sample-cosmic-rings', 'Cosmic Rings', 'concentric circles, deep space, crimson glow, minimalist geometry', 'Glowing rings drift through deep space — a study in geometric minimalism.', 'samples/sample-1.svg', 'R2_PUBLIC_URL_PLACEHOLDER/samples/sample-1.svg', 800, 1000, 'image/svg+xml', 'published', 1, 'sample'),
-  ('sample-cubic-drift', 'Cubic Drift', 'overlapping rectangles, slate blue, architectural geometry, rotation', 'Floating planes intersect at impossible angles — quiet architectural abstraction.', 'samples/sample-2.svg', 'R2_PUBLIC_URL_PLACEHOLDER/samples/sample-2.svg', 800, 1000, 'image/svg+xml', 'published', 1, 'sample'),
-  ('sample-nebula-veil', 'Nebula Veil', 'overlapping ellipses, purple nebula, soft curves, ethereal glow', 'Soft ellipses overlap like cosmic clouds — an ethereal purple veil.', 'samples/sample-3.svg', 'R2_PUBLIC_URL_PLACEHOLDER/samples/sample-3.svg', 800, 1000, 'image/svg+xml', 'published', 1, 'sample');
+  ('sample-kittens', 'Garden Companions', 'a white kitten and a black kitten sitting together in a lush green garden, impressionist painting style, dappled light, wildflowers', 'Two kittens share a quiet moment in a sunlit garden — impressionist warmth in every brushstroke.', 'samples/sample-kittens.jpg', 'R2_PUBLIC_URL_PLACEHOLDER/samples/sample-kittens.jpg', 800, 473, 'image/jpeg', 'published', 1, 'sample'),
+  ('sample-whale-ride', 'Sky Voyage', 'child riding a whale through blue sky with clouds, whimsical illustration, colored pencil, storybook art, joyful', 'A child soars across a crayon-blue sky on the back of a gentle whale — pure storybook wonder.', 'samples/sample-whale-ride.jpg', 'R2_PUBLIC_URL_PLACEHOLDER/samples/sample-whale-ride.jpg', 533, 800, 'image/jpeg', 'published', 1, 'sample'),
+  ('sample-winter-village', 'Winter Stillness', 'winter landscape, snowy village with wooden cabins, pine trees, abstract brushstrokes, layered paint, blue and gold palette', 'Snow-covered cabins nestle among pines — layered brushstrokes dissolve the village into quiet abstraction.', 'samples/sample-winter-village.jpg', 'R2_PUBLIC_URL_PLACEHOLDER/samples/sample-winter-village.jpg', 800, 450, 'image/jpeg', 'published', 1, 'sample');
 
 -- Tag sample entries
 INSERT INTO entry_tags (entry_id, tag_id)
   SELECT e.id, t.id FROM entries e, tags t
-  WHERE e.slug = 'sample-cosmic-rings' AND t.slug = 'abstract';
+  WHERE e.slug = 'sample-kittens' AND t.slug = 'portrait';
 INSERT INTO entry_tags (entry_id, tag_id)
   SELECT e.id, t.id FROM entries e, tags t
-  WHERE e.slug = 'sample-cubic-drift' AND t.slug = 'landscape';
+  WHERE e.slug = 'sample-whale-ride' AND t.slug = 'abstract';
 INSERT INTO entry_tags (entry_id, tag_id)
   SELECT e.id, t.id FROM entries e, tags t
-  WHERE e.slug = 'sample-nebula-veil' AND t.slug = 'portrait';
+  WHERE e.slug = 'sample-winter-village' AND t.slug = 'landscape';
 
 -- Sample blog topic
 INSERT OR IGNORE INTO blog_topics (slug, title) VALUES

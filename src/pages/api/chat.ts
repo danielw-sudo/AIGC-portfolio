@@ -6,9 +6,28 @@ import type { ChatMessage } from '@/lib/ai/types';
 
 const JSON_H = { 'Content-Type': 'application/json' };
 
-const DEFAULT_PROMPT = `You are an AI butler — a helpful assistant for an AI art portfolio platform.
-Be concise and helpful. Answer questions about art, AI image generation, portfolio management, and creative work.
-When the user wants to create content, guide them to use the admin tools. Never refuse creative requests.`;
+const DEFAULT_PROMPT = `You are Butler, the AI assistant for this portfolio site.
+You know the site intimately — its content, capabilities, and current state.
+
+PERSONALITY:
+- Concise, warm, knowledgeable — like a trusted colleague, not a chatbot
+- Guide creators toward the admin tools when they want to act
+- Never refuse creative requests
+- If asked about something outside the site, answer briefly then steer back
+
+CAPABILITIES YOU KNOW ABOUT:
+- Gallery: upload art, AI auto-tags and describes images, multi-image entries
+- Blog: markdown editor, AI copywriting, topic tagging
+- AI Settings: switch between providers (CF Workers AI, NVIDIA, Google), edit system prompts
+- Site Config: hero title/subtitle, header/footer links, meta descriptions
+- Audit: content health checks, R2 orphan cleanup, AI usage stats
+
+SITE CONTEXT (injected at runtime):
+{{SITE_CONTEXT}}
+
+Use the site context to give specific, actionable answers. If the gallery is empty,
+suggest uploading first artwork. If there are entries but no blog posts, suggest writing one.
+Refer to actual numbers, not generic advice.`;
 
 function providerName(model: string): string {
   if (model.startsWith('@nv/')) return 'nvidia';
@@ -22,13 +41,43 @@ async function getModel(settings: SettingsService, hasGoogle: boolean): Promise<
   return hasGoogle ? '@google/gemini-2.5-flash' : DEFAULT_TIER_MODELS.fast;
 }
 
+/** Gather live site stats for Butler context injection. */
+async function buildSiteContext(db: D1Database, env: Record<string, unknown>): Promise<string> {
+  try {
+    const [entries, tags, posts, topics] = await Promise.all([
+      db.prepare('SELECT COUNT(*) as c FROM entries WHERE status = ?1').bind('published').first<{ c: number }>(),
+      db.prepare('SELECT COUNT(*) as c FROM tags').first<{ c: number }>(),
+      db.prepare('SELECT COUNT(*) as c FROM blog_posts WHERE status = ?1').bind('published').first<{ c: number }>(),
+      db.prepare('SELECT COUNT(*) as c FROM blog_topics').first<{ c: number }>(),
+    ]);
+
+    const providers: string[] = ['CF Workers AI (built-in)'];
+    if (env.NVIDIA_API_KEY) providers.push('NVIDIA NIM');
+    if (env.GOOGLE_AI_KEY) providers.push('Google Gemini');
+
+    const lines = [
+      `Gallery: ${entries?.c ?? 0} published entries`,
+      `Tags: ${tags?.c ?? 0}`,
+      `Blog: ${posts?.c ?? 0} published posts, ${topics?.c ?? 0} topics`,
+      `AI providers available: ${providers.join(', ')}`,
+    ];
+
+    return lines.join('\n');
+  } catch {
+    return 'Site context unavailable (database may not be initialized yet)';
+  }
+}
+
 export async function POST(ctx: APIContext) {
   const { env } = ctx.locals.runtime;
   if (!env.AI) {
     return new Response(JSON.stringify({ error: 'AI binding not configured' }), { status: 501, headers: JSON_H });
   }
 
-  const body = await ctx.request.json().catch(() => null) as { message?: string; model?: string; history?: Array<{ role: string; content: string }> } | null;
+  const body = await ctx.request.json().catch(() => null) as {
+    message?: string; model?: string;
+    history?: Array<{ role: string; content: string }>;
+  } | null;
   if (!body?.message) {
     return new Response(JSON.stringify({ error: 'message required' }), { status: 400, headers: JSON_H });
   }
@@ -38,7 +87,16 @@ export async function POST(ctx: APIContext) {
 
   try {
     const model = body.model || await getModel(settings, !!env.GOOGLE_AI_KEY);
-    const systemPrompt = await settings.get('ai_butler_prompt') || DEFAULT_PROMPT;
+    const [rawPrompt, siteContext] = await Promise.all([
+      settings.get('ai_butler_prompt'),
+      buildSiteContext(env.DB, env as Record<string, unknown>),
+    ]);
+
+    const basePrompt = rawPrompt || DEFAULT_PROMPT;
+    const systemPrompt = basePrompt.includes('{{SITE_CONTEXT}}')
+      ? basePrompt.replace('{{SITE_CONTEXT}}', siteContext)
+      : `${basePrompt}\n\nCurrent site state:\n${siteContext}`;
+
     const textProvider = createTextProvider(env.AI, env.NVIDIA_API_KEY, env.GOOGLE_AI_KEY);
     const t0 = Date.now();
 

@@ -4,7 +4,7 @@ import { deleteImage } from '@/lib/core/r2';
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 
-const SAMPLE_R2_KEYS = ['samples/sample-1.svg', 'samples/sample-2.svg', 'samples/sample-3.svg'];
+const SAMPLE_R2_KEYS = ['samples/sample-kittens.jpg', 'samples/sample-whale-ride.jpg', 'samples/sample-winter-village.jpg'];
 
 export async function POST(ctx: APIContext) {
   const { env } = ctx.locals.runtime;
