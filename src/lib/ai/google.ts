@@ -24,6 +24,46 @@ function categorizeError(status: number, body: string): Error {
   return new Error(`Google AI error ${status}: ${body.substring(0, 200)}`);
 }
 
+/** Text-only Gemini call — chat messages mapped to Gemini content format. */
+export async function callGoogleText(
+  apiKey: string,
+  model: string,
+  messages: Array<{ role: string; content: string }>,
+  maxTokens = 2048,
+): Promise<string> {
+  const modelId = stripPrefix(model);
+  const url = `${GOOGLE_API_URL}/${modelId}:generateContent?key=${apiKey}`;
+
+  const system = messages.filter((m) => m.role === 'system').map((m) => m.content).join('\n');
+  const contents = messages
+    .filter((m) => m.role !== 'system')
+    .map((m) => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    }));
+
+  const body: Record<string, unknown> = {
+    contents,
+    generationConfig: { maxOutputTokens: maxTokens },
+  };
+  if (system) body.systemInstruction = { parts: [{ text: system }] };
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => '');
+    throw categorizeError(res.status, errBody);
+  }
+
+  const json = (await res.json()) as GeminiResponse;
+  if (json.error) throw new Error(`Google AI: ${json.error.message}`);
+  return json.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+}
+
 /** Fetch image and return { base64, mimeType } for Gemini inline_data. */
 async function fetchImageBase64(imageUrl: string): Promise<{ data: string; mimeType: string }> {
   const resp = await fetch(imageUrl);

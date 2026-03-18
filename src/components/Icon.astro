@@ -1,0 +1,27 @@
+---
+/**
+ * Inline SVG icon from lucide-static. Server-rendered, zero JS.
+ * Usage: <Icon name="image" size={20} class="text-gray-400" />
+ */
+import * as icons from 'lucide-static';
+
+interface Props {
+  name: string;
+  size?: number;
+  class?: string;
+}
+
+const { name, size = 16, class: className = '' } = Astro.props;
+
+// PascalCase lookup: "file-text" → "FileText"
+const pascal = name.replace(/(^|-)(\w)/g, (_: string, __: string, c: string) => c.toUpperCase());
+const raw = (icons as Record<string, string>)[pascal] || '';
+
+// Patch width/height/class into the SVG tag
+const svg = raw
+  .replace(/width="\d+"/, `width="${size}"`)
+  .replace(/height="\d+"/, `height="${size}"`)
+  .replace(/class="[^"]*"/, `class="${`lucide ${className}`.trim()}"`);
+---
+
+<Fragment set:html={svg} />

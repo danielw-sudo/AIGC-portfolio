@@ -1,5 +1,5 @@
 ---
-import ThemeToggle from '@/components/ThemeToggle.tsx';
+import ThemeToggle from '@/components/ThemeToggle.astro';
 import { SettingsService } from '@/lib/data';
 
 const { pathname } = Astro.url;
@@ -31,7 +31,7 @@ const navLinks = siteConfig.headerLinks.length > 0 ? siteConfig.headerLinks : de
           </a>
         );
       })}
-      <ThemeToggle client:load />
+      <ThemeToggle />
     </nav>
   </div>
 </header>

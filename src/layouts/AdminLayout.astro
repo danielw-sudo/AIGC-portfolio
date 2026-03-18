@@ -11,21 +11,21 @@ const { title = 'Admin' } = Astro.props;
     <meta name="robots" content="noindex, nofollow" />
     <title>{title} — Admin</title>
     <script is:inline>
-      (function(){var t=localStorage.getItem('aw-admin-theme')||'dark';document.documentElement.setAttribute('data-theme',t)})();
+      (function(){var t=localStorage.getItem('aigc-admin-theme')||'dark';document.documentElement.setAttribute('data-theme',t)})();
     </script>
   </head>
   <body class="admin-body min-h-screen">
     <nav class="admin-nav border-b sticky top-0 z-50">
       <div class="max-w-6xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between">
-        <a href="/admin" class="text-lg font-bold admin-title">aw<span class="text-blue-400">:</span>admin</a>
+        <a href="/admin" class="text-lg font-bold admin-title">AIGC<span class="text-blue-400">:</span>admin</a>
         <div class="hidden sm:flex items-center gap-4 text-sm">
           <a href="/admin/gallery" class="admin-link">Gallery</a>
           <a href="/admin/blog" class="admin-link">Blog</a>
           <a href="/admin/pages" class="admin-link">Pages</a>
+          <a href="/admin/chat" class="admin-link">Chat</a>
           <span class="admin-nav-sep w-px h-4 bg-gray-700 mx-0.5"></span>
-          <a href="/admin/settings" class="admin-link">AI Settings</a>
-          <a href="/admin/site-config" class="admin-link">Site Config</a>
-          <a href="/admin/migrations" class="admin-link">DB Management</a>
+          <a href="/admin/audit" class="admin-link">Audit</a>
+          <a href="/admin/developer" class="admin-link">Developer</a>
           <button id="theme-toggle" type="button" class="admin-theme-btn ml-1" aria-label="Toggle theme">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <circle class="sun-icon" cx="12" cy="12" r="4" />
@@ -54,10 +54,10 @@ const { title = 'Admin' } = Astro.props;
         <a href="/admin/gallery" class="block py-2 admin-link">Gallery</a>
         <a href="/admin/blog" class="block py-2 admin-link">Blog</a>
         <a href="/admin/pages" class="block py-2 admin-link">Pages</a>
+        <a href="/admin/chat" class="block py-2 admin-link">Chat</a>
         <div class="border-t border-gray-800 my-1"></div>
-        <a href="/admin/settings" class="block py-2 admin-link">AI Settings</a>
-        <a href="/admin/site-config" class="block py-2 admin-link">Site Config</a>
-        <a href="/admin/migrations" class="block py-2 admin-link">DB Management</a>
+        <a href="/admin/audit" class="block py-2 admin-link">Audit</a>
+        <a href="/admin/developer" class="block py-2 admin-link">Developer</a>
         <a href="/" class="block py-2 admin-link-muted">View Site →</a>
       </div>
     </nav>
@@ -75,7 +75,7 @@ const { title = 'Admin' } = Astro.props;
         const html = document.documentElement;
         const next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
         html.setAttribute('data-theme', next);
-        localStorage.setItem('aw-admin-theme', next);
+        localStorage.setItem('aigc-admin-theme', next);
         applyIcons(next);
       }
       function applyIcons(theme: string) {
@@ -83,7 +83,7 @@ const { title = 'Admin' } = Astro.props;
         document.querySelectorAll('.sun-icon').forEach(el => (el as SVGElement).style.display = isLight ? 'none' : '');
         document.querySelectorAll('.moon-icon').forEach(el => (el as SVGElement).style.display = isLight ? '' : 'none');
       }
-      applyIcons(localStorage.getItem('aw-admin-theme') || 'dark');
+      applyIcons(localStorage.getItem('aigc-admin-theme') || 'dark');
       document.getElementById('theme-toggle')?.addEventListener('click', toggleAdminTheme);
       document.getElementById('theme-toggle-m')?.addEventListener('click', toggleAdminTheme);
     </script>

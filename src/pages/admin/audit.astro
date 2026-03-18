@@ -1,0 +1,137 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import Icon from '@/components/Icon.astro';
+import { runAudit } from '@/lib/data/audit';
+
+const { env } = Astro.locals.runtime;
+const audit = await runAudit(env);
+const { entries, blog, seo, images } = audit;
+---
+
+<AdminLayout title="Site Audit">
+  <div class="mb-6 flex items-center justify-between">
+    <h1 class="text-xl font-bold">Site Audit</h1>
+    <a href="/admin" class="text-xs text-gray-500 hover:text-gray-300 transition-colors">← Dashboard</a>
+  </div>
+
+  <!-- Content Health -->
+  <section class="bg-gray-900 border border-gray-700 rounded-lg p-4 mb-4">
+    <h2 class="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+      <Icon name="file-text" size={16} class="text-gray-400" /> Content Health
+    </h2>
+    <ul class="space-y-2 text-sm">
+      <li class="flex items-center gap-2">
+        <Icon name="check-circle" size={14} class="text-green-400" />
+        <span class="text-gray-300">{entries.total} entries ({entries.published} published, {entries.drafts} drafts)</span>
+      </li>
+      {entries.staleDrafts > 0 && (
+        <li class="flex items-center gap-2">
+          <Icon name="alert-triangle" size={14} class="text-yellow-400" />
+          <span class="text-gray-300">{entries.staleDrafts} entries in draft for 30+ days</span>
+        </li>
+      )}
+      <li class="flex items-center gap-2">
+        <Icon name="check-circle" size={14} class="text-green-400" />
+        <span class="text-gray-300">{blog.total} blog posts</span>
+      </li>
+    </ul>
+  </section>
+
+  <!-- Image Health -->
+  <section class="bg-gray-900 border border-gray-700 rounded-lg p-4 mb-4">
+    <h2 class="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+      <Icon name="image" size={16} class="text-gray-400" /> Image Health
+    </h2>
+    <ul class="space-y-2 text-sm">
+      {images.orphanCount > 0 ? (
+        <li class="flex items-center gap-2">
+          <Icon name="alert-triangle" size={14} class="text-yellow-400" />
+          <span class="text-gray-300">{images.orphanCount} orphan images in R2 ({images.orphanSizeKB} KB)</span>
+        </li>
+      ) : (
+        <li class="flex items-center gap-2">
+          <Icon name="check-circle" size={14} class="text-green-400" />
+          <span class="text-gray-300">All images referenced</span>
+        </li>
+      )}
+    </ul>
+    {images.orphanCount > 0 && (
+      <button
+        id="btn-r2-cleanup"
+        type="button"
+        class="mt-3 text-xs px-3 py-1.5 rounded bg-red-600/80 hover:bg-red-500 text-white transition-colors inline-flex items-center gap-1.5"
+      >
+        <Icon name="trash-2" size={12} /> Clean orphan images
+      </button>
+      <div id="cleanup-result" class="mt-2 text-xs text-gray-400 hidden"></div>
+    )}
+  </section>
+
+  <!-- SEO Health -->
+  <section class="bg-gray-900 border border-gray-700 rounded-lg p-4 mb-4">
+    <h2 class="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+      <Icon name="search" size={16} class="text-gray-400" /> SEO Health
+    </h2>
+    <ul class="space-y-2 text-sm">
+      {seo.missingDesc > 0 ? (
+        <li class="flex items-center gap-2">
+          <Icon name="alert-triangle" size={14} class="text-yellow-400" />
+          <span class="text-gray-300">{seo.missingDesc} entries missing descriptions</span>
+        </li>
+      ) : (
+        <li class="flex items-center gap-2">
+          <Icon name="check-circle" size={14} class="text-green-400" />
+          <span class="text-gray-300">All entries have descriptions</span>
+        </li>
+      )}
+      {blog.missingSummary > 0 ? (
+        <li class="flex items-center gap-2">
+          <Icon name="alert-triangle" size={14} class="text-yellow-400" />
+          <span class="text-gray-300">{blog.missingSummary} blog posts missing summaries</span>
+        </li>
+      ) : (
+        <li class="flex items-center gap-2">
+          <Icon name="check-circle" size={14} class="text-green-400" />
+          <span class="text-gray-300">All blog posts have summaries</span>
+        </li>
+      )}
+      {seo.untagged > 0 && (
+        <li class="flex items-center gap-2">
+          <Icon name="alert-triangle" size={14} class="text-yellow-400" />
+          <span class="text-gray-300">{seo.untagged} entries have no tags</span>
+        </li>
+      )}
+      {seo.unusedTags > 0 && (
+        <li class="flex items-center gap-2">
+          <Icon name="alert-triangle" size={14} class="text-yellow-400" />
+          <span class="text-gray-300">{seo.unusedTags} unused tags</span>
+        </li>
+      )}
+    </ul>
+  </section>
+</AdminLayout>
+
+<script>
+  const btn = document.getElementById('btn-r2-cleanup');
+  const result = document.getElementById('cleanup-result');
+  if (btn && result) {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Delete all orphan images from R2? This cannot be undone.')) return;
+      btn.setAttribute('disabled', '');
+      btn.textContent = 'Cleaning...';
+      try {
+        const res = await fetch('/api/admin/r2-cleanup', { method: 'DELETE' });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        result.textContent = `Deleted ${data.count} images, freed ${Math.round((data.freedBytes || 0) / 1024)} KB.`;
+        result.classList.remove('hidden');
+        btn.textContent = 'Done';
+      } catch (err) {
+        result.textContent = `Error: ${(err as Error).message}`;
+        result.classList.remove('hidden');
+        btn.removeAttribute('disabled');
+        btn.textContent = 'Retry cleanup';
+      }
+    });
+  }
+</script>

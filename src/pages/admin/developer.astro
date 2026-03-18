@@ -1,0 +1,115 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import Icon from '@/components/Icon.astro';
+import { AIUsageService } from '@/lib/data/usage';
+
+const { env } = Astro.locals.runtime;
+const usage = new AIUsageService(env.DB);
+
+const [stats, total] = await Promise.all([
+  usage.getStats24h(),
+  usage.getTotal24h(),
+]);
+
+const hasGoogle = !!env.GOOGLE_AI_KEY;
+const hasNvidia = !!env.NVIDIA_API_KEY;
+---
+
+<AdminLayout title="Developer">
+  <h1 class="text-2xl font-bold mb-1">Developer Mode</h1>
+  <p class="text-gray-500 text-sm mb-6">Full control over your site, AI models, and database.</p>
+
+  <!-- Tool Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+    <a href="/admin/settings"
+      class="bg-gray-900 border border-gray-700 rounded-lg p-5 hover:border-blue-500 transition-colors group">
+      <div class="mb-2"><Icon name="bot" size={24} class="text-blue-400" /></div>
+      <h2 class="font-semibold text-white group-hover:text-blue-400 transition-colors">AI Settings</h2>
+      <p class="text-xs text-gray-500 mt-1">Model tiers, recipes, and provider connections</p>
+    </a>
+    <a href="/admin/site-config"
+      class="bg-gray-900 border border-gray-700 rounded-lg p-5 hover:border-blue-500 transition-colors group">
+      <div class="mb-2"><Icon name="palette" size={24} class="text-blue-400" /></div>
+      <h2 class="font-semibold text-white group-hover:text-blue-400 transition-colors">Site Config</h2>
+      <p class="text-xs text-gray-500 mt-1">Hero, navigation, footer, and SEO settings</p>
+    </a>
+    <a href="/admin/migrations"
+      class="bg-gray-900 border border-gray-700 rounded-lg p-5 hover:border-blue-500 transition-colors group">
+      <div class="mb-2"><Icon name="database" size={24} class="text-blue-400" /></div>
+      <h2 class="font-semibold text-white group-hover:text-blue-400 transition-colors">DB Management</h2>
+      <p class="text-xs text-gray-500 mt-1">Run migrations and view schema history</p>
+    </a>
+    <div class="bg-gray-900 border border-gray-700 rounded-lg p-5 opacity-50">
+      <div class="mb-2"><Icon name="bar-chart-2" size={24} class="text-gray-500" /></div>
+      <h2 class="font-semibold text-gray-400">CF Analytics</h2>
+      <p class="text-xs text-gray-600 mt-1">Coming soon</p>
+    </div>
+  </div>
+
+  <!-- AI Usage Monitor -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold mb-1">AI Usage Monitor</h2>
+    <p class="text-xs text-gray-500 mb-4">Last 24 hours · {total} total calls · Logs auto-purge after 7 days</p>
+
+    <!-- Provider status -->
+    <div class="flex gap-4 mb-4 text-xs">
+      <span class={hasGoogle ? 'text-green-400' : 'text-gray-500'}>
+        Google AI: {hasGoogle ? '● Connected' : '○ Not configured'}
+      </span>
+      <span class={hasNvidia ? 'text-green-400' : 'text-gray-500'}>
+        NVIDIA: {hasNvidia ? '● Connected' : '○ Not configured'}
+      </span>
+      <span class="text-green-400">CF Workers AI: ● Always available</span>
+    </div>
+
+    {stats.length === 0 ? (
+      <div class="bg-gray-900 border border-gray-700 rounded-lg p-6 text-center">
+        <p class="text-gray-500 text-sm">No AI calls in the last 24 hours.</p>
+        <p class="text-gray-600 text-xs mt-1">Usage appears here as you analyze images, format blogs, and chat.</p>
+      </div>
+    ) : (
+      <div class="bg-gray-900 border border-gray-700 rounded-lg overflow-hidden">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-700 text-xs text-gray-500 uppercase tracking-wider">
+              <th class="text-left px-4 py-2">Model</th>
+              <th class="text-left px-4 py-2">Provider</th>
+              <th class="text-right px-4 py-2">Calls</th>
+              <th class="text-right px-4 py-2">Errors</th>
+              <th class="text-right px-4 py-2">Avg Latency</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stats.map((s) => (
+              <tr class="border-b border-gray-800 last:border-0">
+                <td class="px-4 py-2 text-gray-300 font-mono text-xs truncate max-w-[200px]">
+                  {s.model.split('/').pop() || s.model}
+                </td>
+                <td class="px-4 py-2">
+                  <span class={`text-xs px-1.5 py-0.5 rounded ${
+                    s.provider === 'google' ? 'bg-blue-900/40 text-blue-300' :
+                    s.provider === 'nvidia' ? 'bg-green-900/40 text-green-300' :
+                    'bg-gray-800 text-gray-400'
+                  }`}>{s.provider}</span>
+                </td>
+                <td class="px-4 py-2 text-right text-gray-300">{s.total}</td>
+                <td class="px-4 py-2 text-right">
+                  <span class={s.errors > 0 ? 'text-red-400' : 'text-gray-600'}>
+                    {s.errors}
+                  </span>
+                </td>
+                <td class="px-4 py-2 text-right text-gray-400">
+                  {s.avg_latency_ms > 0 ? `${s.avg_latency_ms}ms` : '-'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </section>
+
+  <div class="text-center">
+    <a href="/admin" class="text-gray-500 hover:text-white text-sm transition-colors">← Back to Dashboard</a>
+  </div>
+</AdminLayout>

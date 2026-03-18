@@ -37,7 +37,7 @@ Database:    Cloudflare D1 (serverless SQLite)
 Storage:     Cloudflare R2 (S3-compatible)
 AI:          Multi-provider — CF Workers AI, NVIDIA NIM, Google Gemini
 Styling:     Tailwind CSS 4 (CSS-native @theme in global.css)
-Islands:     React (ThemeToggle only)
+Icons:       Lucide (lucide-static, server-rendered via Icon.astro)
 Auth:        Cloudflare Zero Trust (infrastructure-level, no in-app auth)
 ```
 
@@ -47,7 +47,7 @@ Auth:        Cloudflare Zero Trust (infrastructure-level, no in-app auth)
 
 ```
 src/
-├── components/        UI components (Astro + 1 React island)
+├── components/        UI components (pure Astro, zero React)
 ├── layouts/           MainLayout, AdminLayout
 ├── lib/
 │   ├── ai/            Multi-provider AI routing (@cf/, @nv/, @google/)
@@ -74,7 +74,7 @@ src/
 | `schema.sql` | Full D1 schema (12 tables, 15 indexes) |
 | `wrangler.json` | CF Workers bindings (DB, IMAGES, AI, env vars) |
 | `setup.sh` | Automated D1/R2 provisioning + deploy |
-| `astro.config.mjs` | SSR + Cloudflare adapter + Tailwind V4 + React |
+| `astro.config.mjs` | SSR + Cloudflare adapter + Tailwind V4 |
 | `.antigravity/rules.md` | AI agent handoff context (Gemini/other agents) |
 | `ROADMAP.md` | Feature roadmap + release history |
 
@@ -101,7 +101,7 @@ Dashboard toggle: users switch providers + edit system prompts from `/admin/sett
 - Dark/light mode via `dark:` variant
 - D1 queries use batched operations to stay within free-tier limits
 - No heavy state managers (no Redux, no Zustand)
-- No heavy frameworks beyond Astro + minimal React islands
+- No heavy frameworks — pure Astro, zero React
 
 ---
 

@@ -1,5 +1,6 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
+import Icon from '@/components/Icon.astro';
 import { EntryService, SettingsService, AIUsageService } from '@/lib/data';
 import { BlogPostService } from '@/lib/data/blog';
 import { AI_MODEL_CATALOG } from '@/lib/ai/models';
@@ -72,46 +73,52 @@ const maxLatency = Math.max(...aiStats.map((r) => r.avg_latency_ms), 1);
     </a>
   </div>
 
-  <!-- Quick Start -->
-  <details class="bg-gray-900 rounded-lg mb-8 group">
-    <summary class="flex items-center justify-between p-4 cursor-pointer select-none">
-      <div class="flex items-center gap-2">
-        <span class="text-blue-400 text-sm">💡</span>
-        <span class="text-sm font-medium text-gray-300">Quick Start Guide</span>
-      </div>
-      <svg class="w-4 h-4 text-gray-500 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-      </svg>
+  <!-- Quick Start Guide -->
+  <details class="mb-8 bg-gray-900 border border-gray-700 rounded-lg text-sm">
+    <summary class="cursor-pointer px-4 py-2.5 text-gray-400 hover:text-white select-none transition-colors flex items-center gap-2">
+      <span class="shrink-0"><Icon name="file-text" size={16} /></span>
+      <span class="font-medium">Quick Start Guide</span>
+      <span class="ml-auto text-[10px] text-gray-600">click to expand</span>
     </summary>
-    <div class="px-4 pb-4 text-sm text-gray-400 space-y-3">
-      <div class="flex gap-3 items-start">
-        <span class="text-blue-400 font-bold mt-0.5">1</span>
-        <div>
-          <p class="text-gray-300 font-medium">Upload artwork</p>
-          <p>Click <strong>"New Gallery Entry"</strong> above → upload an image → fill in title and prompt → hit Publish.</p>
-        </div>
-      </div>
-      <div class="flex gap-3 items-start">
-        <span class="text-blue-400 font-bold mt-0.5">2</span>
-        <div>
-          <p class="text-gray-300 font-medium">Let AI help</p>
-          <p>After uploading an image, click <strong>"Analyze with AI"</strong> to auto-generate title, description, and tags. Accept or reject each suggestion.</p>
-        </div>
-      </div>
-      <div class="flex gap-3 items-start">
-        <span class="text-blue-400 font-bold mt-0.5">3</span>
-        <div>
-          <p class="text-gray-300 font-medium">Write blog posts</p>
-          <p>Go to <strong>"New Blog Post"</strong> → write in markdown → assign topics → publish. AI can help draft content too.</p>
-        </div>
-      </div>
-      <div class="flex gap-3 items-start">
-        <span class="text-blue-400 font-bold mt-0.5">4</span>
-        <div>
-          <p class="text-gray-300 font-medium">Manage your site</p>
-          <p>Use <strong>Gallery</strong> and <strong>Blog</strong> in the nav to browse and edit. <strong>AI Settings</strong> lets you choose models and customize prompts.</p>
-        </div>
-      </div>
+    <div class="px-4 pb-4 pt-2 text-gray-400 space-y-4 text-xs leading-relaxed">
+      <p class="text-gray-500 font-medium uppercase tracking-wider text-[10px]">Content Management</p>
+      <ul class="space-y-2 ml-1">
+        <li class="flex gap-2">
+          <span class="shrink-0 mt-0.5"><Icon name="image" size={14} /></span>
+          <span><strong class="text-gray-300">Create Gallery</strong> — Upload an image, add title and prompt, click Analyze for AI suggestions, then publish.</span>
+        </li>
+        <li class="flex gap-2">
+          <span class="shrink-0 mt-0.5"><Icon name="pen-line" size={14} /></span>
+          <span><strong class="text-gray-300">Write Blog Posts</strong> — Markdown editor with AI-assisted drafting and topic tagging.</span>
+        </li>
+        <li class="flex gap-2">
+          <span class="shrink-0 mt-0.5"><Icon name="sparkles" size={14} /></span>
+          <span><strong class="text-gray-300">AI Analyze</strong> — One-click analysis generates title, description, and tags from your images.</span>
+        </li>
+        <li class="flex gap-2">
+          <span class="shrink-0 mt-0.5"><Icon name="file-check" size={14} /></span>
+          <span><strong class="text-gray-300">Draft → Publish</strong> — All content starts as draft. Review before publishing.</span>
+        </li>
+      </ul>
+      <p class="text-gray-500 font-medium uppercase tracking-wider text-[10px] pt-2">Developer Mode</p>
+      <ul class="space-y-2 ml-1">
+        <li class="flex gap-2">
+          <span class="shrink-0 mt-0.5"><Icon name="settings" size={14} /></span>
+          <span><strong class="text-gray-300">AI Settings</strong> — Switch providers (CF Workers AI, NVIDIA, Google), tune system prompts.</span>
+        </li>
+        <li class="flex gap-2">
+          <span class="shrink-0 mt-0.5"><Icon name="message-square" size={14} /></span>
+          <span><strong class="text-gray-300">Chat Butler</strong> — Test AI models interactively with full conversation history.</span>
+        </li>
+        <li class="flex gap-2">
+          <span class="shrink-0 mt-0.5"><Icon name="shield-check" size={14} /></span>
+          <span><strong class="text-gray-300">Site Audit</strong> — Content health, image integrity, SEO checks, R2 orphan cleanup.</span>
+        </li>
+        <li class="flex gap-2">
+          <span class="shrink-0 mt-0.5"><Icon name="code" size={14} /></span>
+          <span><strong class="text-gray-300">Developer Hub</strong> — DB management, AI usage monitor, site configuration.</span>
+        </li>
+      </ul>
     </div>
   </details>
 

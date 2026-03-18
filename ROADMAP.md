@@ -56,6 +56,52 @@
 
 ---
 
+## Vision & Architecture Assessment (2026-03-15)
+
+### What This Project Actually Is
+
+More than a portfolio template — it's a **zero-middleware AI orchestration layer**.
+
+**Core thesis:** Orchestrate multiple free LLMs without heavy infrastructure. No LangChain,
+no n8n, no OpenClaw. Direct `fetch` calls to provider APIs, routed by string prefix.
+The admin UI IS the product — set up a portfolio, manage content, and optimize AI recipes
+from a single interface. Everything runs on Cloudflare free tiers.
+
+### Current Architecture Strengths
+
+| Principle | Implementation |
+|---|---|
+| **Zero middleware** | 3 raw `fetch` clients (CF Workers AI binding, NVIDIA REST, Google REST). No SDK wrappers. |
+| **Minimum deps** | 9 runtime dependencies. Zero AI libraries. Zero ORMs. Auth is CF Zero Trust at edge. |
+| **Direct API calls** | `nvidia.ts` (104 lines), `google.ts` (74 lines), `service.ts` (72 lines). Total AI layer: ~860 lines / 9 files. |
+| **Layered admin UX** | Fast start (upload + title), Customize (tags, prompts, params), Advanced (AI recipes, model tiers). AI is a button, not a gate. |
+| **Free tier viable** | All 26+ AI models are free. D1/R2/Workers on Cloudflare free plan. NVIDIA + Google Gemini free API tiers. |
+
+### Portfolio → AaaS Upgrade Path
+
+The foundation supports growth toward AI-as-a-Service. Current readiness: **~60%**.
+
+**What's built:**
+- Complete portfolio engine with AI-powered tagging/description
+- Multi-provider model routing (add a provider = add one file)
+- Per-entry structured prompt parameters (JSON column)
+- Edge-cached public pages, clean service layer (no cross-dependencies)
+
+**What's missing for AaaS:**
+- **Multi-tenancy** — currently single-user. Need tenant isolation (row-level `tenant_id` or separate D1 per tenant)
+- **API keys / programmatic auth** — currently Zero Trust OTP. Need issurable API keys for external consumers
+- **Usage metering** — `usage.ts` exists but tracks internal AI calls. Need billing-grade metering
+- **Workflow composition** — current flow is single-shot (image → AI → tags). AaaS needs chainable steps
+- **Webhook/callback system** — for async workflows and external integrations
+
+**Why the jump is feasible (not a rewrite):**
+- Service layer is clean — each service is independent
+- AI routing is provider-agnostic — new providers are one file
+- Everything runs on Cloudflare edge — D1, R2, Workers AI, Durable Objects (for future state)
+- Multi-tenancy and workflow composition touch ~3-4 files each
+
+---
+
 ## Release History
 
 ### v1.2.0 (2026-03-07) — Agentic Handoff & Docs Refactor

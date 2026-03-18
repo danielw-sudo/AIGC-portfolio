@@ -1,11 +1,18 @@
 import type { APIContext } from 'astro';
-import { SettingsService, AIUsageService } from '@/lib/data';
+import { SettingsService, AIUsageService, TaxonomyService } from '@/lib/data';
 import { AIService, type AIModelTier } from '@/lib/ai/service';
 import { VisionService } from '@/lib/ai/vision';
 import { parseAIMarkdown } from '@/lib/ai/parsers';
+import { createTextProvider, createCfVisionProvider } from '@/lib/ai/cf-provider';
 
 const VALID_TIERS = ['fast', 'balanced', 'quality'];
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
+
+async function fetchTagNames(db: D1Database): Promise<string[]> {
+  const taxonomy = new TaxonomyService(db);
+  const tags = await taxonomy.getAllTags();
+  return tags.map((t) => t.title);
+}
 
 function provider(model: string): string {
   if (model.startsWith('@nv/')) return 'nvidia';
@@ -30,7 +37,7 @@ export async function POST(context: APIContext) {
   const tier = (body?.tier as string) || 'fast';
   const imageUrl = (body?.imageUrl as string)?.trim() || null;
 
-  const vision = new VisionService(env.AI, env.DB, {
+  const vision = new VisionService(createCfVisionProvider(env.AI), {
     nvidia: env.NVIDIA_API_KEY,
     google: env.GOOGLE_AI_KEY,
   });
@@ -45,7 +52,8 @@ export async function POST(context: APIContext) {
       const settings = new SettingsService(env.DB);
       const visionModelId = (await settings.get('ai_model_vision')) || undefined;
       const recipe = (await settings.get('ai_vision_recipe')) || undefined;
-      const result = await vision.recoverPrompt(imageUrl, recipe, visionModelId);
+      const tagNames = await fetchTagNames(env.DB);
+      const result = await vision.recoverPrompt(imageUrl, tagNames, recipe, visionModelId);
       usage.log(result.model, provider(result.model), 'vision-prompt', 'ok', Date.now() - t0);
       const parsed = parseAIMarkdown(result.prompt);
       return new Response(JSON.stringify({
@@ -84,8 +92,10 @@ export async function POST(context: APIContext) {
 
     // Text analysis
     const t0 = Date.now();
-    const ai = new AIService(env.AI, env.DB);
-    const raw = await ai.analyze(prompt, tier as AIModelTier, config, env.NVIDIA_API_KEY);
+    const tagNames = await fetchTagNames(env.DB);
+    const textProvider = createTextProvider(env.AI, env.NVIDIA_API_KEY, env.GOOGLE_AI_KEY);
+    const ai = new AIService(textProvider);
+    const raw = await ai.analyze(prompt, tagNames, tier as AIModelTier, config);
     usage.log(raw.model, provider(raw.model), 'text', 'ok', Date.now() - t0);
     const result = raw.markdown.length > 5000
       ? { ...raw, markdown: raw.markdown.substring(0, 5000) }
@@ -100,7 +110,7 @@ export async function POST(context: APIContext) {
       const tv = Date.now();
       try {
         const visionModelId = (await settings.get('ai_model_vision')) || undefined;
-        const vr = await vision.analyzeImage(imageUrl, visionModelId);
+        const vr = await vision.analyzeImage(imageUrl, tagNames, visionModelId);
         visionTags = vr.tags;
         visionModel = vr.model;
         usage.log(vr.model, provider(vr.model), 'vision-tags', 'ok', Date.now() - tv);

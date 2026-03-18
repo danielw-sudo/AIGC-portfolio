@@ -32,11 +32,11 @@ const cta2Url = siteConfig.heroCta2.url || '/blog';
 <MainLayout description={metaDesc}>
   <!-- Hero -->
   <section class="max-w-3xl mx-auto px-4 pt-16 sm:pt-24 pb-10 text-center">
-    <h1 class="text-4xl sm:text-5xl font-bold tracking-tight text-text-primary mb-4 hero-enter" set:html={heroTitle} />
-    <p class="text-text-secondary text-lg sm:text-xl mb-8 hero-enter-delay">
+    <h1 class="text-5xl sm:text-6xl lg:text-7xl tracking-tight text-text-primary mb-4 hero-title" set:html={heroTitle} />
+    <p class="text-text-secondary text-lg sm:text-xl mb-8 hero-subtitle">
       {heroSubtitle}
     </p>
-    <div class="flex items-center justify-center gap-3 hero-enter-delay">
+    <div class="flex items-center justify-center gap-3 hero-cta">
       <a
         href={cta1Url}
         class="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent/90

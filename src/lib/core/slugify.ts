@@ -14,3 +14,8 @@ export function slugify(input: string): string {
 
   return slug || `image-${Date.now()}`;
 }
+
+/** Title Case: "hello world" → "Hello World", "UPPER" → "Upper". */
+export function toTitleCase(s: string): string {
+  return s.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.substring(1).toLowerCase());
+}

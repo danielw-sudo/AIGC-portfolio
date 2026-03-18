@@ -1,0 +1,248 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { SettingsService, AIUsageService } from '@/lib/data';
+import { AI_MODEL_CATALOG } from '@/lib/ai/models';
+
+const { env } = Astro.locals.runtime;
+const settings = new SettingsService(env.DB);
+const usage = new AIUsageService(env.DB);
+
+const [butlerPrompt, usageTotal] = await Promise.all([
+  settings.get('ai_butler_prompt'),
+  usage.getTotal24h(),
+]);
+
+const hasGoogle = !!env.GOOGLE_AI_KEY;
+const hasNvidia = !!env.NVIDIA_API_KEY;
+
+// Build model groups: Google > NVIDIA (top 2) > CF (top 2)
+const googleModels = hasGoogle ? AI_MODEL_CATALOG.filter((m) => m.id.startsWith('@google/')) : [];
+const nvidiaModels = hasNvidia ? AI_MODEL_CATALOG.filter((m) => m.id.startsWith('@nv/') && !m.description.toLowerCase().includes('vision')).slice(0, 2) : [];
+const cfModels = AI_MODEL_CATALOG.filter((m) => m.id.startsWith('@cf/') && !m.id.includes('vision') && !m.id.includes('gemma')).slice(0, 2);
+
+const defaultPrompt = `You are an AI butler — a helpful assistant for an AI art portfolio platform.
+Be concise and helpful. Answer questions about art, AI image generation, portfolio management, and creative work.
+When the user wants to create content, guide them to use the admin tools. Never refuse creative requests.`;
+const currentPrompt = butlerPrompt || defaultPrompt;
+---
+
+<AdminLayout title="Chat">
+  <div class="chat-page flex flex-col" style="height: calc(100vh - 3.5rem - 6rem);">
+    <!-- Header: model picker + system prompt toggle -->
+    <div class="flex items-center gap-2 mb-3 flex-wrap">
+      <select id="chat-model" class="bg-gray-900 border border-gray-700 rounded text-[11px] text-gray-400 px-2 py-1 focus:border-blue-500 focus:outline-none cursor-pointer">
+        {googleModels.length > 0 && (
+          <optgroup label="Google">
+            {googleModels.map((m) => <option value={m.id}>{m.name}</option>)}
+          </optgroup>
+        )}
+        {nvidiaModels.length > 0 && (
+          <optgroup label="NVIDIA">
+            {nvidiaModels.map((m) => <option value={m.id}>{m.name}</option>)}
+          </optgroup>
+        )}
+        <optgroup label="CF Workers AI">
+          {cfModels.map((m) => <option value={m.id}>{m.name}</option>)}
+        </optgroup>
+      </select>
+      <span class="text-[10px] text-gray-600">{usageTotal} calls today</span>
+      <a href="/admin" class="ml-auto text-xs text-gray-500 hover:text-gray-300 transition-colors">← Dashboard</a>
+    </div>
+
+    <!-- System prompt (collapsible) -->
+    <details id="system-prompt-panel" class="mb-3 bg-gray-900 border border-gray-700 rounded-lg text-xs">
+      <summary class="cursor-pointer px-3 py-2 text-gray-500 hover:text-gray-300 select-none transition-colors">
+        System Prompt <span class="text-gray-600">(edit to customize butler behavior)</span>
+      </summary>
+      <div class="px-3 pb-3">
+        <textarea
+          id="system-prompt"
+          rows="4"
+          class="w-full bg-gray-950 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 resize-y focus:border-blue-500 focus:outline-none"
+        >{currentPrompt}</textarea>
+        <div class="flex items-center gap-2 mt-1.5">
+          <button id="btn-save-prompt" type="button" class="text-[10px] px-2 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white transition-colors">Save</button>
+          <span id="prompt-status" class="text-[10px] text-gray-600"></span>
+        </div>
+      </div>
+    </details>
+
+    <!-- Messages -->
+    <div id="chat-messages" class="flex-1 overflow-y-auto pb-4 pr-2 space-y-1">
+      <div class="flex gap-3 mb-4">
+        <div class="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+          <span class="text-[10px] text-white font-bold">ai</span>
+        </div>
+        <div class="max-w-[85%]">
+          <div id="welcome-text" class="bg-gray-900 rounded-lg p-3 text-sm text-gray-300">
+            Hey — I'm your AI butler. Ask me anything about art, AI generation, or managing your portfolio.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toolbar: export + clear -->
+    <div id="chat-toolbar" class="flex items-center py-1">
+      <span id="toolbar-export" class="flex items-center gap-1 hidden">
+        <button id="btn-copy" type="button" title="Copy chat" class="p-1.5 text-gray-600 hover:text-gray-300 transition-colors rounded hover:bg-gray-800">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </button>
+        <button id="btn-download" type="button" title="Download as .md" class="p-1.5 text-gray-600 hover:text-gray-300 transition-colors rounded hover:bg-gray-800">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+      </span>
+      <button id="btn-clear" type="button" class="ml-auto text-[10px] text-gray-600 hover:text-gray-400 transition-colors hidden">New Chat</button>
+    </div>
+
+    <!-- Input -->
+    <div class="border-t border-gray-800 pt-3 pb-2">
+      <form id="chat-form" class="flex gap-2">
+        <textarea
+          id="chat-input"
+          rows="1"
+          placeholder="Type a message..."
+          class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 resize-none focus:border-blue-500 focus:outline-none"
+          style="max-height: 6rem;"
+        ></textarea>
+        <button type="submit" class="shrink-0 bg-blue-600 hover:bg-blue-500 text-white rounded-lg px-4 py-2 text-sm transition-colors">
+          Send
+        </button>
+      </form>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  import { initChat, sendMessage, setChatModel, getMessages, resetChat, truncateFrom } from '@/lib/admin-ui/chat/chat-engine';
+  import { initRenderer, renderMessages, resetRenderer } from '@/lib/admin-ui/chat/chat-renderer';
+  import { exportAsMarkdown } from '@/lib/admin-ui/chat/chat-storage';
+
+  const msgContainer = document.getElementById('chat-messages')!;
+  const chatForm = document.getElementById('chat-form') as HTMLFormElement;
+  const chatInput = document.getElementById('chat-input') as HTMLTextAreaElement;
+  const modelSelect = document.getElementById('chat-model') as HTMLSelectElement;
+  const toolbarExport = document.getElementById('toolbar-export')!;
+  const btnClear = document.getElementById('btn-clear')!;
+
+  // Init
+  initRenderer(msgContainer);
+  initChat({
+    onUpdate: (msgs) => {
+      renderMessages(msgs, { onEdit: handleEdit });
+      const hasMessages = msgs.length > 0;
+      toolbarExport.classList.toggle('hidden', !hasMessages);
+      btnClear.classList.toggle('hidden', !hasMessages);
+    },
+  });
+
+  // Hide welcome if history restored
+  const welcomeBubble = msgContainer.querySelector('.flex.gap-3.mb-4') as HTMLElement | null;
+  if (getMessages().length > 0 && welcomeBubble) welcomeBubble.style.display = 'none';
+
+  // Model selector
+  const savedModel = localStorage.getItem('aigc-butler-model');
+  if (savedModel && [...modelSelect.options].some((o) => o.value === savedModel)) {
+    modelSelect.value = savedModel;
+  }
+  setChatModel(modelSelect.value || null);
+  modelSelect.addEventListener('change', () => {
+    setChatModel(modelSelect.value || null);
+    localStorage.setItem('aigc-butler-model', modelSelect.value);
+  });
+
+  // Form submit
+  function submitChat() {
+    const text = chatInput.value.trim();
+    if (!text) return;
+    chatInput.value = '';
+    chatInput.style.height = 'auto';
+    if (welcomeBubble) welcomeBubble.style.display = 'none';
+    sendMessage(text);
+  }
+
+  chatForm.addEventListener('submit', (e) => { e.preventDefault(); submitChat(); });
+  chatInput.addEventListener('input', () => {
+    chatInput.style.height = 'auto';
+    chatInput.style.height = Math.min(chatInput.scrollHeight, 96) + 'px';
+  });
+  chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitChat(); }
+  });
+
+  // Edit handler
+  function handleEdit(index: number, content: string) {
+    const bubble = msgContainer.children[index + 1] as HTMLElement;
+    if (!bubble) return;
+    const textDiv = bubble.querySelector('.bg-blue-600') as HTMLElement;
+    if (!textDiv) return;
+
+    const textarea = document.createElement('textarea');
+    textarea.className = 'bg-gray-900 border border-blue-500 rounded-lg px-3 py-2 text-sm text-gray-200 resize-none w-full focus:outline-none';
+    textarea.value = content;
+    textarea.rows = Math.min(content.split('\n').length + 1, 6);
+    textDiv.replaceWith(textarea);
+    textarea.focus();
+
+    function doEdit() {
+      const newText = textarea.value.trim();
+      if (!newText || newText === content) {
+        resetRenderer();
+        renderMessages(getMessages(), { onEdit: handleEdit });
+        return;
+      }
+      truncateFrom(index);
+      sendMessage(newText);
+    }
+
+    textarea.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doEdit(); }
+      if (e.key === 'Escape') {
+        resetRenderer();
+        renderMessages(getMessages(), { onEdit: handleEdit });
+      }
+    });
+    textarea.addEventListener('blur', doEdit);
+  }
+
+  // System prompt save
+  const promptTextarea = document.getElementById('system-prompt') as HTMLTextAreaElement;
+  const promptStatus = document.getElementById('prompt-status')!;
+  document.getElementById('btn-save-prompt')?.addEventListener('click', async () => {
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ai_butler_prompt: promptTextarea.value }),
+      });
+      if (!res.ok) throw new Error('Save failed');
+      promptStatus.textContent = 'Saved';
+      promptStatus.className = 'text-[10px] text-green-400';
+      setTimeout(() => { promptStatus.textContent = ''; }, 2000);
+    } catch {
+      promptStatus.textContent = 'Error saving';
+      promptStatus.className = 'text-[10px] text-red-400';
+    }
+  });
+
+  // Toolbar: copy, download, clear
+  document.getElementById('btn-copy')!.addEventListener('click', async () => {
+    const md = exportAsMarkdown(getMessages());
+    await navigator.clipboard.writeText(md);
+    const btn = document.getElementById('btn-copy')!;
+    btn.classList.add('text-green-400');
+    setTimeout(() => btn.classList.remove('text-green-400'), 1500);
+  });
+  document.getElementById('btn-download')!.addEventListener('click', () => {
+    const md = exportAsMarkdown(getMessages());
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `aigc-chat-${new Date().toISOString().split('T')[0]}.md`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  document.getElementById('btn-clear')!.addEventListener('click', () => {
+    resetChat();
+    window.location.reload();
+  });
+</script>

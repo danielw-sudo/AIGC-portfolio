@@ -40,16 +40,16 @@ const Q = {
   INSERT: `
     INSERT INTO entries (slug, title, prompt, negative_prompt, description,
       model_id, source_url, image_key, image_url, width, height,
-      file_size, mime_type, status, featured, source_type, metadata)
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)
+      file_size, mime_type, status, featured, source_type, metadata, prompt_params)
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)
     RETURNING *`,
   UPDATE: `
     UPDATE entries SET title = ?1, prompt = ?2, negative_prompt = ?3,
       description = ?4, model_id = ?5, source_url = ?6, image_key = ?7,
       image_url = ?8, width = ?9, height = ?10, file_size = ?11,
       mime_type = ?12, status = ?13, featured = ?14, source_type = ?15,
-      metadata = ?16, updated_at = datetime('now')
-    WHERE id = ?17 RETURNING *`,
+      metadata = ?16, prompt_params = ?17, updated_at = datetime('now')
+    WHERE id = ?18 RETURNING *`,
   DELETE: `DELETE FROM entries WHERE id = ?1`,
   CLEAR_TAGS: `DELETE FROM entry_tags WHERE entry_id = ?1`,
   ADD_TAG: `INSERT INTO entry_tags (entry_id, tag_id) VALUES (?1, ?2)`,
@@ -243,6 +243,7 @@ export class EntryService {
         input.status ?? 'draft', input.featured ? 1 : 0,
         input.source_type ?? 'manual',
         input.metadata ? JSON.stringify(input.metadata) : null,
+        input.prompt_params ? JSON.stringify(input.prompt_params) : null,
       )
       .first<EntryRow>();
     if (!row) throw new Error('Failed to create entry');
@@ -274,6 +275,7 @@ export class EntryService {
         input.featured !== undefined ? (input.featured ? 1 : 0) : existing.featured,
         input.source_type ?? existing.source_type,
         input.metadata ? JSON.stringify(input.metadata) : existing.metadata,
+        input.prompt_params ? JSON.stringify(input.prompt_params) : existing.prompt_params,
         id,
       )
       .first<EntryRow>();
@@ -329,6 +331,7 @@ export class EntryService {
         ...row,
         featured: !!row.featured,
         metadata: row.metadata ? JSON.parse(row.metadata as string) : null,
+        prompt_params: row.prompt_params ? JSON.parse(row.prompt_params as string) : null,
         model,
         tags: tagMap.get(row.id) ?? [],
       };
@@ -356,6 +359,7 @@ export class EntryService {
       ...row,
       featured: !!row.featured,
       metadata: row.metadata ? JSON.parse(row.metadata as string) : null,
+      prompt_params: row.prompt_params ? JSON.parse(row.prompt_params as string) : null,
       model,
       tags,
     };

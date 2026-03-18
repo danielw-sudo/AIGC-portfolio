@@ -1,0 +1,66 @@
+import type { APIContext } from 'astro';
+import { SettingsService, AIUsageService } from '@/lib/data';
+import { createTextProvider } from '@/lib/ai/cf-provider';
+import { DEFAULT_TIER_MODELS } from '@/lib/ai/models';
+import type { ChatMessage } from '@/lib/ai/types';
+
+const JSON_H = { 'Content-Type': 'application/json' };
+
+const DEFAULT_PROMPT = `You are an AI butler — a helpful assistant for an AI art portfolio platform.
+Be concise and helpful. Answer questions about art, AI image generation, portfolio management, and creative work.
+When the user wants to create content, guide them to use the admin tools. Never refuse creative requests.`;
+
+function providerName(model: string): string {
+  if (model.startsWith('@nv/')) return 'nvidia';
+  if (model.startsWith('@google/')) return 'google';
+  return 'cf';
+}
+
+async function getModel(settings: SettingsService, hasGoogle: boolean): Promise<string> {
+  const custom = await settings.get('ai_model_chat');
+  if (custom) return custom;
+  return hasGoogle ? '@google/gemini-2.5-flash' : DEFAULT_TIER_MODELS.fast;
+}
+
+export async function POST(ctx: APIContext) {
+  const { env } = ctx.locals.runtime;
+  if (!env.AI) {
+    return new Response(JSON.stringify({ error: 'AI binding not configured' }), { status: 501, headers: JSON_H });
+  }
+
+  const body = await ctx.request.json().catch(() => null) as { message?: string; model?: string; history?: Array<{ role: string; content: string }> } | null;
+  if (!body?.message) {
+    return new Response(JSON.stringify({ error: 'message required' }), { status: 400, headers: JSON_H });
+  }
+
+  const settings = new SettingsService(env.DB);
+  const usage = new AIUsageService(env.DB);
+
+  try {
+    const model = body.model || await getModel(settings, !!env.GOOGLE_AI_KEY);
+    const systemPrompt = await settings.get('ai_butler_prompt') || DEFAULT_PROMPT;
+    const textProvider = createTextProvider(env.AI, env.NVIDIA_API_KEY, env.GOOGLE_AI_KEY);
+    const t0 = Date.now();
+
+    const msgs: ChatMessage[] = [{ role: 'system', content: systemPrompt }];
+    if (body.history?.length) {
+      for (const h of body.history.slice(-6)) {
+        msgs.push({ role: h.role as 'user' | 'assistant', content: h.content });
+      }
+    }
+    msgs.push({ role: 'user', content: body.message });
+
+    const reply = await textProvider(model, msgs, 512);
+    const elapsed = Date.now() - t0;
+    usage.log(model, providerName(model), 'chat', 'ok', elapsed);
+    return new Response(JSON.stringify({ reply: reply.trim(), elapsed }), { headers: JSON_H });
+  } catch (err) {
+    const raw = err instanceof Error ? err.message : String(err);
+    const lower = raw.toLowerCase();
+    let status = 500;
+    let msg = raw || 'Something went wrong. Try again.';
+    if (lower.includes('rate limit') || lower.includes('429')) { status = 429; msg = 'AI is busy — wait 30s.'; }
+    else if (lower.includes('timeout')) { status = 504; msg = 'Request timed out.'; }
+    return new Response(JSON.stringify({ error: msg }), { status, headers: JSON_H });
+  }
+}

@@ -2,9 +2,9 @@ import type { APIContext } from 'astro';
 import { SettingsService, AIUsageService } from '@/lib/data';
 import { BlogTopicService } from '@/lib/data/blog';
 import { parseBlogAIMarkdown } from '@/lib/ai/parsers';
-import { DEFAULT_BLOG_RECIPE, isNvidiaModel } from '@/lib/ai/models';
+import { DEFAULT_BLOG_RECIPE } from '@/lib/ai/models';
 import { DEFAULT_BLOG_COPYWRITE_RECIPE } from '@/lib/data/settings';
-import { callNvidia } from '@/lib/ai/nvidia';
+import { createTextProvider } from '@/lib/ai/cf-provider';
 
 function provider(model: string): string {
   if (model.startsWith('@nv/')) return 'nvidia';
@@ -58,19 +58,8 @@ export async function POST(context: APIContext) {
     ];
 
     const t0 = Date.now();
-    let text: string;
-    if (isNvidiaModel(model)) {
-      if (!env.NVIDIA_API_KEY) throw new Error('NVIDIA API key not configured');
-      text = await callNvidia(env.NVIDIA_API_KEY, model, messages, 2048);
-    } else {
-      const response = await env.AI.run(model as BaseAiTextGenerationModels, {
-        messages,
-        max_tokens: 2048,
-      });
-      text = typeof response === 'object' && 'response' in response
-        ? (response as { response: string }).response
-        : String(response);
-    }
+    const textProvider = createTextProvider(env.AI, env.NVIDIA_API_KEY, env.GOOGLE_AI_KEY);
+    const text = await textProvider(model, messages, 2048);
     usage.log(model, provider(model), `blog-${mode}`, 'ok', Date.now() - t0);
 
     const trimmed = text.trim();

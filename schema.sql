@@ -41,6 +41,7 @@ CREATE TABLE entries (
   featured        INTEGER NOT NULL DEFAULT 0,
   source_type     TEXT DEFAULT 'manual',
   metadata        TEXT,
+  prompt_params   TEXT,
   created_at      TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );

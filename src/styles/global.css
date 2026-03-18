@@ -1,7 +1,7 @@
 /* Design System — dark-first with warm-cream light mode */
 /* Dark-first with warm-cream light mode */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
@@ -20,6 +20,7 @@
   --color-text-muted: #5c6578;
   --font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
   --font-family-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-family-display: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
 }
 
 /* --- Light mode overrides --- */
@@ -180,21 +181,47 @@ h1, h2, h3 {
   .masonry-item { width: calc(25% - 16px); }
 }
 
-/* --- Entrance animation --- */
+/* --- Entrance animations --- */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Hero entrance */
-.hero-enter {
-  opacity: 0;
-  animation: fadeInUp 0.6s ease-out forwards;
+@keyframes heroReveal {
+  from { opacity: 0; transform: translateY(24px); letter-spacing: 0.05em; }
+  to   { opacity: 1; transform: translateY(0);    letter-spacing: -0.025em; }
 }
-.hero-enter-delay {
-  opacity: 0;
-  animation: fadeInUp 0.6s ease-out 0.15s forwards;
+
+@keyframes blurFadeIn {
+  from { opacity: 0; filter: blur(8px); transform: translateY(10px); }
+  to   { opacity: 1; filter: blur(0);   transform: translateY(0); }
 }
+
+/* Hero entrance — staggered cascade */
+.hero-title {
+  font-family: var(--font-family-display);
+  font-weight: 700;
+  opacity: 0;
+  animation: heroReveal 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+.hero-subtitle {
+  opacity: 0;
+  animation: blurFadeIn 0.8s ease-out 0.5s forwards;
+}
+.hero-cta {
+  opacity: 0;
+  animation: fadeInUp 0.6s ease-out 0.8s forwards;
+}
+
+/* Legacy aliases (backward compat) */
+.hero-enter { opacity: 0; animation: fadeInUp 0.6s ease-out forwards; }
+.hero-enter-delay { opacity: 0; animation: fadeInUp 0.6s ease-out 0.15s forwards; }
+
+/* Reusable motion utilities */
+.animate-fade-up { opacity: 0; animation: fadeInUp 0.5s ease-out forwards; }
+.animate-fade-up-delay { opacity: 0; animation: fadeInUp 0.5s ease-out 0.15s forwards; }
+.animate-blur-in { opacity: 0; animation: blurFadeIn 0.6s ease-out forwards; }
+.animate-blur-in-delay { opacity: 0; animation: blurFadeIn 0.6s ease-out 0.2s forwards; }
 
 /* Staggered card reveal */
 .masonry-item.revealed {

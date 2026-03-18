@@ -34,6 +34,7 @@ export interface EntryRow {
   featured: number; // SQLite boolean 0/1
   source_type: string;
   metadata: string | null; // JSON string
+  prompt_params: string | null; // JSON string — generation parameters
   created_at: string;
   updated_at: string;
 }
@@ -79,9 +80,10 @@ export interface Page extends PageRow {
 
 // === Domain types (enriched for templates) ===
 
-export interface Entry extends Omit<EntryRow, 'featured' | 'metadata'> {
+export interface Entry extends Omit<EntryRow, 'featured' | 'metadata' | 'prompt_params'> {
   featured: boolean;
   metadata: Record<string, unknown> | null;
+  prompt_params: Record<string, unknown> | null;
   model?: ModelRow | null;
   tags?: TagRow[];
   images?: EntryImageRow[];
@@ -123,6 +125,7 @@ export interface CreateEntryInput {
   featured?: boolean;
   source_type?: string;
   metadata?: Record<string, unknown>;
+  prompt_params?: Record<string, unknown>;
   tag_ids?: number[];
 }
 
