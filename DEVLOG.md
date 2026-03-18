@@ -1,5 +1,19 @@
 # AIGC Portfolio — Dev Log
 
+## 2026-03-17 — CI Workflow Fix
+
+**Problem:** Deploy workflow ran on every push to `main`, failed with red X on template forks (no credentials configured). Bad first impression.
+
+**What shipped:**
+- Workflow now uses `workflow_dispatch` + secret-gated push trigger (`67ea610`)
+- On push: silently skips if `CLOUDFLARE_API_TOKEN` is missing
+- On manual dispatch: always runs, with actionable error if token missing
+- SETUP.md Step 5 updated in all 3 languages to reflect new deploy flow
+
+**Decision:** Option C (both triggers) — quiet for template forks, automatic once credentials are added.
+
+---
+
 ## 2026-03-17 — Onboarding Experience (Phase 4e)
 
 **Goal:** Reduce drop-off for non-technical creators after deploy.
