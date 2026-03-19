@@ -1,4 +1,5 @@
 ---
+import { env } from "cloudflare:workers";
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import Icon from '@/components/Icon.astro';
 import OnboardingChecklist from '@/components/admin/OnboardingChecklist.astro';
@@ -7,7 +8,6 @@ import { BlogPostService } from '@/lib/data/blog';
 import { AI_MODEL_CATALOG } from '@/lib/ai/models';
 import { getOnboardingState } from '@/lib/data/onboarding';
 
-const { env } = Astro.locals.runtime;
 const entries = new EntryService(env.DB);
 const blog = new BlogPostService(env.DB);
 const settings = new SettingsService(env.DB);

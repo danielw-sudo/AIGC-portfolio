@@ -1,9 +1,9 @@
 ---
+import { env } from "cloudflare:workers";
 import ThemeToggle from '@/components/ThemeToggle.astro';
 import { SettingsService } from '@/lib/data';
 
 const { pathname } = Astro.url;
-const { env } = Astro.locals.runtime;
 const settings = new SettingsService(env.DB);
 const siteConfig = await settings.getSiteConfig();
 

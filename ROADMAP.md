@@ -47,9 +47,7 @@
 - [x] Restructure root documentation into `src/QuickStart/`
 - [x] Multilingual README split (EN, ZH, JA)
 - [x] Agentic Handoff config (`.antigravity/rules.md`)
-- [ ] Screenshot walkthrough for SETUP.md
 - [x] Admin quick-start guide improvements
-- [ ] Contributing guide
 
 ### Phase 4e — Onboarding Experience
 - [x] Seed content migration (3 SVG gallery entries, 1 welcome blog post, 3 tags, hero defaults)
@@ -59,22 +57,17 @@
 - [x] Hero live preview in Site Config (real-time as-you-type)
 - [x] setup.sh updated: uploads SVGs to R2, seeds content, improved next-steps message
 
-### Phase 5 — Chatbot Setup Assistant (future)
-- [ ] Web-based chatbot guiding users through fork → deploy flow
-- [ ] Step-by-step CF dashboard instructions with context awareness
-- [ ] Token creation guidance, error handling
-- [ ] Requires: separate hosting, AI API costs, prompt engineering
+### Phase 5 — Modernization
+- [x] Astro 6 upgrade (env via `cloudflare:workers`, adapter v13, vite-based build)
+- [x] Gallery public filter page (browse by tags/models via `?tag=` / `?model=` params)
+- [x] Hide zero-count models/tags from public listings
+- [x] llms.txt for AI discoverability
+- [x] Butler prompt deduplication (shared constant in `butler-prompt.ts`)
 
 ### Ideas (unscheduled)
-- [ ] Gallery public search page
 - [ ] Blog card excerpts on home page
 - [x] Tag title case normalization
 - [x] Date format standardization (ISO vs locale)
-- [ ] Hide zero-count models/tags from listings
-- [ ] Logomark concept
-- [ ] llms.txt for AI discoverability
-- [ ] Image optimization pipeline (WebP conversion, thumbnails)
-- [ ] Batch import/export (JSON or CSV)
 
 ---
 

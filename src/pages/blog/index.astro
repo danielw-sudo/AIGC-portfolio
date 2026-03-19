@@ -1,11 +1,11 @@
 ---
+import { env } from "cloudflare:workers";
 import MainLayout from '@/layouts/MainLayout.astro';
 import BlogCard from '@/components/BlogCard.astro';
 import Pagination from '@/components/Pagination.astro';
 import { BlogPostService, BlogTopicService } from '@/lib/data/blog';
 import { SettingsService } from '@/lib/data';
 
-const { env } = Astro.locals.runtime;
 const page = Number(Astro.url.searchParams.get('page')) || 1;
 
 const posts = new BlogPostService(env.DB);

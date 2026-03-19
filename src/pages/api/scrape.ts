@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import type { APIContext } from 'astro';
 import { slugify } from '@/lib/core/slugify';
 import { generateImageKey, uploadImage, ensureUniqueKey, getPublicUrl } from '@/lib/core/r2';
@@ -18,7 +19,6 @@ const MAX_SIZE = 25 * 1024 * 1024; // 25 MB
  * Body: { url: string, slug?: string }
  */
 export async function POST(context: APIContext) {
-  const { env } = context.locals.runtime;
 
   const body = await context.request.json().catch(() => null) as { url?: string; slug?: string } | null;
   if (!body?.url) {

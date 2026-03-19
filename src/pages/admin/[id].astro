@@ -1,8 +1,8 @@
 ---
+import { env } from "cloudflare:workers";
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { EntryService, TaxonomyService, EntryImageService } from '@/lib/data';
 
-const { env } = Astro.locals.runtime;
 const id = Number(Astro.params.id);
 
 if (!id) return Astro.redirect('/admin/gallery');

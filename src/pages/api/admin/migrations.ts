@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import type { APIContext } from 'astro';
 import { MigrationService } from '@/lib/data/migrations';
 
@@ -13,14 +14,12 @@ async function sha256(text: string): Promise<string> {
 
 /** GET /api/admin/migrations — list migration history */
 export async function GET(context: APIContext) {
-  const { env } = context.locals.runtime;
   const svc = new MigrationService(env.DB);
   return json(await svc.list());
 }
 
 /** POST /api/admin/migrations — execute a migration */
 export async function POST(context: APIContext) {
-  const { env } = context.locals.runtime;
   const body = await context.request.json().catch(() => null);
 
   const name = (body?.name as string)?.trim();

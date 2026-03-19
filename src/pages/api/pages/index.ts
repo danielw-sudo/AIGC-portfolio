@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import type { APIContext } from 'astro';
 import { PageService } from '@/lib/data';
 
@@ -5,13 +6,11 @@ const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 
 export async function GET(context: APIContext) {
-  const { env } = context.locals.runtime;
   const pages = new PageService(env.DB);
   return json(await pages.listAll());
 }
 
 export async function POST(context: APIContext) {
-  const { env } = context.locals.runtime;
   const body = await context.request.json().catch(() => null);
   const title = (body?.title as string)?.trim();
   if (!title) return json({ error: 'title is required' }, 400);

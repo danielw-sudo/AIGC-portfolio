@@ -1,10 +1,10 @@
+import { env } from "cloudflare:workers";
 import type { APIContext } from 'astro';
 import { slugify } from '@/lib/core/slugify';
 import { generateImageKey, uploadImage, ensureUniqueKey, getPublicUrl } from '@/lib/core/r2';
 import { getImageDimensions } from '@/lib/core/image-dimensions';
 
 export async function POST(context: APIContext) {
-  const { env } = context.locals.runtime;
 
   const formData = await context.request.formData();
   const file = formData.get('image') as File | null;

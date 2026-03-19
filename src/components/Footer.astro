@@ -1,8 +1,8 @@
 ---
+import { env } from "cloudflare:workers";
 import { SettingsService } from '@/lib/data';
 
 const year = new Date().getFullYear();
-const { env } = Astro.locals.runtime;
 const settings = new SettingsService(env.DB);
 const siteConfig = await settings.getSiteConfig();
 

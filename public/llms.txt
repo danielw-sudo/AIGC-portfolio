@@ -1,0 +1,34 @@
+# AIGC Portfolio
+
+> AI-powered art gallery and blog template. Zero cost. Zero coding required.
+
+## About
+
+AIGC Portfolio is a production-ready template for deploying an AI art gallery and blog on Cloudflare's free tier. It orchestrates multiple free LLMs (Cloudflare Workers AI, NVIDIA NIM, Google Gemini) via direct API calls — no SDKs, no middleware, no vendor lock-in.
+
+## Architecture
+
+- Framework: Astro 6 (SSR on Cloudflare Workers edge)
+- Database: Cloudflare D1 (serverless SQLite)
+- Storage: Cloudflare R2 (S3-compatible)
+- AI: Multi-provider routing by string prefix (@cf/, @nv/, @google/)
+- Styling: Tailwind CSS 4
+- Auth: Cloudflare Zero Trust (infrastructure-level)
+- Dependencies: 9 total (zero React, zero ORMs, zero AI SDKs)
+
+## Features
+
+- Gallery with masonry layout, tag/model filtering, AI auto-tagging via vision models
+- Blog with markdown editor and AI copywriting assistance
+- Butler: context-aware AI assistant that knows your site content
+- Admin panel with CMS, AI settings, content audit, usage monitoring
+- Multi-LLM orchestration: switch providers from the dashboard
+- Agentic development: ships with .claude/ and .antigravity/ context files
+
+## Source
+
+https://github.com/danielw-sudo/AIGC-portfolio
+
+## License
+
+MIT

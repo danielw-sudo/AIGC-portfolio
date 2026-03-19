@@ -1,10 +1,10 @@
 ---
+import { env } from "cloudflare:workers";
 import MainLayout from '@/layouts/MainLayout.astro';
 import ImageCard from '@/components/ImageCard.astro';
 import { EntryService, SettingsService } from '@/lib/data';
 import { BlogPostService } from '@/lib/data/blog';
 
-const { env } = Astro.locals.runtime;
 const entries = new EntryService(env.DB);
 const blog = new BlogPostService(env.DB);
 const settings = new SettingsService(env.DB);

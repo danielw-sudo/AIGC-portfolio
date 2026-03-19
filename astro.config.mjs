@@ -5,11 +5,9 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   output: 'server',
   adapter: cloudflare({
-    platformProxy: {
-      enabled: true,
-      configPath: 'wrangler.json',
-      persist: { path: './.wrangler/state/v3' },
-    },
+    configPath: 'wrangler.json',
+    persistState: { path: './.wrangler/state/v3' },
+    remoteBindings: false,
   }),
   vite: { plugins: [tailwindcss()] },
 });

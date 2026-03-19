@@ -1,5 +1,27 @@
 # AIGC Portfolio — Dev Log
 
+## 2026-03-18 — Astro 6 Upgrade & Debt Cleanup
+
+**What shipped:**
+- **Astro 6 upgrade**: 5.17→6.0.6, adapter 12.6→13.1.2 (vite-based build pipeline)
+- **Breaking migration**: 60 files moved from `Astro.locals.runtime.env` → `import { env } from "cloudflare:workers"`
+- **Adapter config**: `platformProxy` replaced with flat `configPath` + `persistState` + `remoteBindings: false`
+- **Build simplification**: removed `wrangler types` from build/dev/preview scripts and CI — adapter generates types during build
+- **wrangler.json**: removed `main` field (vite handles output), placeholders lowercased for stricter validation
+- Gallery in-page tag/model filtering via `?tag=slug` / `?model=slug` URL params with active highlight
+- Zero-count tags/models hidden from `/tags/` and `/models/` public listings
+- Butler prompt deduplicated to `src/lib/ai/butler-prompt.ts`
+- `public/llms.txt` added for AI discoverability
+- ROADMAP pruned: removed 6 deferred items, Phase 5 Modernization completed
+- All docs updated (README x3, CLAUDE.md, rules.md, llms.txt, ROADMAP.md)
+
+**Decisions:**
+- `entries.ts` (381 lines) — exception granted, no split. Tightly coupled hydration logic makes clean seams impossible.
+- `remoteBindings: false` required for template repos — new adapter tries to auth to CF API during build.
+- Astro Themes submission unblocked now that Astro 6 is done.
+
+---
+
 ## 2026-03-18 — Pre-Ship Polish & Distribution
 
 **What shipped:**

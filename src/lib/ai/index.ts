@@ -18,3 +18,4 @@ export { callNvidia, callNvidiaVision } from './nvidia';
 export { callGoogleText, callGoogleVision } from './google';
 export { createTextProvider, createCfVisionProvider } from './cf-provider';
 export type { ChatMessage, TextProvider, ContentPart } from './types';
+export { BUTLER_DEFAULT_PROMPT } from './butler-prompt';

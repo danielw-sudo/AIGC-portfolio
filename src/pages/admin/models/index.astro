@@ -1,8 +1,8 @@
 ---
+import { env } from "cloudflare:workers";
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { TaxonomyService } from '@/lib/data';
 
-const { env } = Astro.locals.runtime;
 const taxonomy = new TaxonomyService(env.DB);
 const models = await taxonomy.getModelsWithCount();
 ---

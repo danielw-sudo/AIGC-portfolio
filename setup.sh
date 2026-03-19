@@ -131,7 +131,7 @@ SETUP_DB_NAME="$DB_NAME" node -e "
 
   for (const key of Object.keys(pkg.scripts)) {
     if (key.startsWith('db:')) {
-      pkg.scripts[key] = pkg.scripts[key].replace(/YOUR_DB_NAME/g, dbName);
+      pkg.scripts[key] = pkg.scripts[key].replace(/your-db-name/g, dbName);
     }
   }
 

@@ -1,8 +1,8 @@
 ---
+import { env } from "cloudflare:workers";
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { BlogTopicService } from '@/lib/data/blog';
 
-const { env } = Astro.locals.runtime;
 const topicSvc = new BlogTopicService(env.DB);
 const topics = await topicSvc.getAll();
 ---

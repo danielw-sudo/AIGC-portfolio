@@ -1,8 +1,8 @@
 ---
+import { env } from "cloudflare:workers";
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { BlogPostService, BlogTopicService } from '@/lib/data/blog';
 
-const { env } = Astro.locals.runtime;
 const postId = Number(Astro.params.id);
 if (!postId) return Astro.redirect('/admin/blog');
 

@@ -1,11 +1,11 @@
 ---
+import { env } from "cloudflare:workers";
 import MainLayout from '@/layouts/MainLayout.astro';
 import ImageCard from '@/components/ImageCard.astro';
 import TagPill from '@/components/TagPill.astro';
 import Pagination from '@/components/Pagination.astro';
 import { EntryService, TaxonomyService } from '@/lib/data';
 
-const { env } = Astro.locals.runtime;
 const { slug } = Astro.params;
 
 if (!slug) return Astro.redirect('/');

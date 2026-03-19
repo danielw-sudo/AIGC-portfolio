@@ -1,8 +1,8 @@
 ---
+import { env } from "cloudflare:workers";
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { PageService } from '@/lib/data';
 
-const { env } = Astro.locals.runtime;
 const pageService = new PageService(env.DB);
 const pages = await pageService.listAll();
 ---

@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import type { APIContext } from 'astro';
 import { TaxonomyService } from '@/lib/data';
 
@@ -5,7 +6,6 @@ const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 
 export async function PUT(context: APIContext) {
-  const { env } = context.locals.runtime;
   const id = Number(context.params.id);
   if (!id) return json({ error: 'Invalid ID' }, 400);
 
@@ -22,7 +22,6 @@ export async function PUT(context: APIContext) {
 }
 
 export async function DELETE(context: APIContext) {
-  const { env } = context.locals.runtime;
   const id = Number(context.params.id);
   if (!id) return json({ error: 'Invalid ID' }, 400);
 

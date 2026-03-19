@@ -1,6 +1,6 @@
 -- AIGC Portfolio — Complete D1 Schema
 -- Canonical DDL for fresh deploys.
--- Run: wrangler d1 execute YOUR_DB_NAME --file=schema.sql
+-- Run: wrangler d1 execute your-db-name --file=schema.sql
 -- For incremental changes, use the admin migration runner.
 
 -- === Taxonomy ===

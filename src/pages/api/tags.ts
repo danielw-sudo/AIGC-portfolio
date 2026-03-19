@@ -1,9 +1,9 @@
+import { env } from "cloudflare:workers";
 import type { APIContext } from 'astro';
 import { TaxonomyService } from '@/lib/data';
 import { slugify } from '@/lib/core/slugify';
 
 export async function GET(context: APIContext) {
-  const { env } = context.locals.runtime;
   const taxonomy = new TaxonomyService(env.DB);
   const tags = await taxonomy.getTagsWithCount();
 
@@ -13,7 +13,6 @@ export async function GET(context: APIContext) {
 }
 
 export async function POST(context: APIContext) {
-  const { env } = context.locals.runtime;
 
   const body = await context.request.json().catch(() => null) as Record<string, unknown> | null;
   const INVALID_NAMES = new Set(['none', 'null', 'n/a', 'na', 'undefined', 'nothing', '-']);

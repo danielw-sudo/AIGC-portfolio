@@ -1,20 +1,21 @@
 ---
+import { env } from "cloudflare:workers";
 import MainLayout from '@/layouts/MainLayout.astro';
 import ImageCard from '@/components/ImageCard.astro';
 import TagPill from '@/components/TagPill.astro';
 import Pagination from '@/components/Pagination.astro';
 import { EntryService, TaxonomyService, SettingsService } from '@/lib/data';
 
-const { env } = Astro.locals.runtime;
 const page = Number(Astro.url.searchParams.get('page')) || 1;
 const q = Astro.url.searchParams.get('q')?.trim() || '';
+const tagSlug = Astro.url.searchParams.get('tag')?.trim() || '';
+const modelSlug = Astro.url.searchParams.get('model')?.trim() || '';
 
 const entries = new EntryService(env.DB);
 const taxonomy = new TaxonomyService(env.DB);
 const settings = new SettingsService(env.DB);
 
-const [result, models, tags, metaDesc] = await Promise.all([
-  q ? entries.search(q, page, 24) : entries.listPublished(page, 24),
+const [models, tags, metaDesc] = await Promise.all([
   taxonomy.getModelsWithCount(),
   taxonomy.getTagsWithCount(),
   settings.getMetaDesc('gallery', 'The ones I love most — feel free to borrow a prompt.'),
@@ -22,7 +23,29 @@ const [result, models, tags, metaDesc] = await Promise.all([
 
 const activeModels = models.filter((m) => m.entry_count > 0);
 const activeTags = tags.filter((t) => t.entry_count > 0);
-const basePath = q ? `/gallery/?q=${encodeURIComponent(q)}` : '/gallery/';
+
+// Resolve active filter
+const filterTag = tagSlug ? activeTags.find((t) => t.slug === tagSlug) : null;
+const filterModel = modelSlug ? activeModels.find((m) => m.slug === modelSlug) : null;
+const hasFilter = !!(q || filterTag || filterModel);
+
+// Fetch entries based on active filter
+const result = q
+  ? await entries.search(q, page, 24)
+  : filterTag
+    ? await entries.listByTag(filterTag.id, page, 24)
+    : filterModel
+      ? await entries.listByModel(filterModel.id, page, 24)
+      : await entries.listPublished(page, 24);
+
+// Build base path for pagination + load-more
+const basePath = q
+  ? `/gallery/?q=${encodeURIComponent(q)}`
+  : filterTag
+    ? `/gallery/?tag=${encodeURIComponent(tagSlug)}`
+    : filterModel
+      ? `/gallery/?model=${encodeURIComponent(modelSlug)}`
+      : '/gallery/';
 ---
 
 <MainLayout title="Gallery" description={metaDesc}>
@@ -53,6 +76,13 @@ const basePath = q ? `/gallery/?q=${encodeURIComponent(q)}` : '/gallery/';
         <a href="/gallery" class="text-accent hover:underline ml-2">Clear</a>
       </p>
     )}
+    {(filterTag || filterModel) && (
+      <p class="text-text-secondary text-sm mt-3">
+        {result.total} {result.total !== 1 ? 'entries' : 'entry'} in
+        <span class="text-text-primary font-medium">{filterTag ? `#${filterTag.title}` : filterModel!.title}</span>
+        <a href="/gallery" class="text-accent hover:underline ml-2">Clear</a>
+      </p>
+    )}
   </section>
 
   <!-- Model + tag filters -->
@@ -62,7 +92,12 @@ const basePath = q ? `/gallery/?q=${encodeURIComponent(q)}` : '/gallery/';
         <div class="relative mb-3">
           <div id="models-row" class="flex gap-2 justify-center flex-nowrap overflow-hidden" style="max-height:2.25rem">
             {activeModels.map((m) => (
-              <TagPill href={`/models/${m.slug}`} label={m.title} count={m.entry_count} />
+              <TagPill
+                href={filterModel?.slug === m.slug ? '/gallery/' : `/gallery/?model=${m.slug}`}
+                label={m.title}
+                count={m.entry_count}
+                active={filterModel?.slug === m.slug}
+              />
             ))}
           </div>
           <button type="button" id="models-more" class="hidden text-xs text-accent hover:underline mt-1 mx-auto block">more</button>
@@ -73,14 +108,16 @@ const basePath = q ? `/gallery/?q=${encodeURIComponent(q)}` : '/gallery/';
           <div id="tags-cloud" class="flex gap-1.5 justify-center flex-wrap overflow-hidden transition-all" style="max-height:4.5rem">
             {activeTags.map((t, i) => (
               <a
-                href={`/tags/${t.slug}`}
+                href={filterTag?.slug === t.slug ? '/gallery/' : `/gallery/?tag=${t.slug}`}
                 class:list={[
                   'text-xs px-2 py-0.5 rounded transition-colors',
-                  `tag-color-${i % 8}`,
+                  filterTag?.slug === t.slug ? 'bg-accent text-white' : `tag-color-${i % 8}`,
                 ]}
               >
                 {t.title}
-                <span class="opacity-60 text-[10px] ml-0.5">{t.entry_count}</span>
+                <span class:list={['text-[10px] ml-0.5', filterTag?.slug === t.slug ? 'text-white/60' : 'opacity-60']}>
+                  {t.entry_count}
+                </span>
               </a>
             ))}
           </div>
@@ -94,8 +131,8 @@ const basePath = q ? `/gallery/?q=${encodeURIComponent(q)}` : '/gallery/';
   <section class="max-w-6xl mx-auto px-4 pb-16">
     {result.data.length === 0 ? (
       <div class="text-center py-20">
-        <p class="text-text-muted text-lg">{q ? 'No whispers match that search. Try a different spell.' : 'No images yet'}</p>
-        {!q && <p class="text-text-muted text-sm mt-2">Upload your first artwork in the admin panel</p>}
+        <p class="text-text-muted text-lg">{hasFilter ? 'No whispers match that filter. Try a different spell.' : 'No images yet'}</p>
+        {!hasFilter && <p class="text-text-muted text-sm mt-2">Upload your first artwork in the admin panel</p>}
       </div>
     ) : (
       <div id="masonry-grid" class="masonry-grid opacity-0 transition-opacity duration-500"
@@ -176,9 +213,10 @@ const basePath = q ? `/gallery/?q=${encodeURIComponent(q)}` : '/gallery/';
       window.addEventListener('resize', () => relayout(), { passive: true });
       window.addEventListener('orientationchange', () => relayout(400));
 
-      // Load More (gallery only, not search)
+      // Load More (gallery + filters, not search)
       const loadMoreBtn = document.getElementById('load-more');
       const totalPages = parseInt(grid.dataset.totalPages || '1', 10);
+      const loadBasePath = grid.dataset.basePath || '/gallery/';
       if (loadMoreBtn && totalPages > 1) {
         let currentPage = 1;
         loadMoreBtn.addEventListener('click', async (e) => {
@@ -186,7 +224,8 @@ const basePath = q ? `/gallery/?q=${encodeURIComponent(q)}` : '/gallery/';
           currentPage++;
           loadMoreBtn.textContent = 'Loading\u2026';
           try {
-            const res = await fetch(`/gallery/?page=${currentPage}`);
+            const sep = loadBasePath.includes('?') ? '&' : '?';
+            const res = await fetch(`${loadBasePath}${sep}page=${currentPage}`);
             const html = await res.text();
             const doc = new DOMParser().parseFromString(html, 'text/html');
             const newItems = [...doc.querySelectorAll('.masonry-item')];

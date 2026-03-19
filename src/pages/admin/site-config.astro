@@ -1,8 +1,8 @@
 ---
+import { env } from "cloudflare:workers";
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { SettingsService } from '@/lib/data';
 
-const { env } = Astro.locals.runtime;
 const settings = new SettingsService(env.DB);
 
 const heroTitle = (await settings.get('site_hero_title')) || '';

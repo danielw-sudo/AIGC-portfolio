@@ -1,14 +1,15 @@
 ---
+import { env } from "cloudflare:workers";
 import MainLayout from '@/layouts/MainLayout.astro';
 import { TaxonomyService, SettingsService } from '@/lib/data';
 
-const { env } = Astro.locals.runtime;
 const taxonomy = new TaxonomyService(env.DB);
 const settings = new SettingsService(env.DB);
-const [models, metaDesc] = await Promise.all([
+const [allModels, metaDesc] = await Promise.all([
   taxonomy.getModelsWithCount(),
   settings.getMetaDesc('models', 'The AI friends helping me create.'),
 ]);
+const models = allModels.filter((m) => m.entry_count > 0);
 ---
 
 <MainLayout title="Models" description={metaDesc}>

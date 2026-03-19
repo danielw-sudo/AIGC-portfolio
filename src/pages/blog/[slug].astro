@@ -1,9 +1,9 @@
 ---
+import { env } from "cloudflare:workers";
 import MainLayout from '@/layouts/MainLayout.astro';
 import { BlogPostService } from '@/lib/data/blog';
 import { marked } from 'marked';
 
-const { env } = Astro.locals.runtime;
 const { slug } = Astro.params;
 
 if (!slug) return Astro.redirect('/blog');

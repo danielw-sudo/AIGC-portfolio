@@ -1,9 +1,9 @@
 ---
+import { env } from "cloudflare:workers";
 import MainLayout from '@/layouts/MainLayout.astro';
 import { BlogTopicService } from '@/lib/data/blog';
 import { SettingsService } from '@/lib/data';
 
-const { env } = Astro.locals.runtime;
 const topicSvc = new BlogTopicService(env.DB);
 const settings = new SettingsService(env.DB);
 const [topics, metaDesc] = await Promise.all([

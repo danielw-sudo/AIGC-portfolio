@@ -1,33 +1,12 @@
+import { env } from "cloudflare:workers";
 import type { APIContext } from 'astro';
 import { SettingsService, AIUsageService } from '@/lib/data';
 import { createTextProvider } from '@/lib/ai/cf-provider';
 import { DEFAULT_TIER_MODELS } from '@/lib/ai/models';
 import type { ChatMessage } from '@/lib/ai/types';
+import { BUTLER_DEFAULT_PROMPT } from '@/lib/ai/butler-prompt';
 
 const JSON_H = { 'Content-Type': 'application/json' };
-
-const DEFAULT_PROMPT = `You are Butler, the AI assistant for this portfolio site.
-You know the site intimately — its content, capabilities, and current state.
-
-PERSONALITY:
-- Concise, warm, knowledgeable — like a trusted colleague, not a chatbot
-- Guide creators toward the admin tools when they want to act
-- Never refuse creative requests
-- If asked about something outside the site, answer briefly then steer back
-
-CAPABILITIES YOU KNOW ABOUT:
-- Gallery: upload art, AI auto-tags and describes images, multi-image entries
-- Blog: markdown editor, AI copywriting, topic tagging
-- AI Settings: switch between providers (CF Workers AI, NVIDIA, Google), edit system prompts
-- Site Config: hero title/subtitle, header/footer links, meta descriptions
-- Audit: content health checks, R2 orphan cleanup, AI usage stats
-
-SITE CONTEXT (injected at runtime):
-{{SITE_CONTEXT}}
-
-Use the site context to give specific, actionable answers. If the gallery is empty,
-suggest uploading first artwork. If there are entries but no blog posts, suggest writing one.
-Refer to actual numbers, not generic advice.`;
 
 function providerName(model: string): string {
   if (model.startsWith('@nv/')) return 'nvidia';
@@ -69,7 +48,6 @@ async function buildSiteContext(db: D1Database, env: Record<string, unknown>): P
 }
 
 export async function POST(ctx: APIContext) {
-  const { env } = ctx.locals.runtime;
   if (!env.AI) {
     return new Response(JSON.stringify({ error: 'AI binding not configured' }), { status: 501, headers: JSON_H });
   }
@@ -92,7 +70,7 @@ export async function POST(ctx: APIContext) {
       buildSiteContext(env.DB, env as Record<string, unknown>),
     ]);
 
-    const basePrompt = rawPrompt || DEFAULT_PROMPT;
+    const basePrompt = rawPrompt || BUTLER_DEFAULT_PROMPT;
     const systemPrompt = basePrompt.includes('{{SITE_CONTEXT}}')
       ? basePrompt.replace('{{SITE_CONTEXT}}', siteContext)
       : `${basePrompt}\n\nCurrent site state:\n${siteContext}`;

@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import type { APIContext } from 'astro';
 import { getImageDimensions } from '@/lib/core/image-dimensions';
 
@@ -10,7 +11,6 @@ const json = (data: unknown, status = 200) =>
  * One-time migration utility.
  */
 export async function POST(context: APIContext) {
-  const { env } = context.locals.runtime;
 
   const { results: entries } = await env.DB
     .prepare('SELECT id, image_key FROM entries WHERE width IS NULL AND image_key IS NOT NULL')

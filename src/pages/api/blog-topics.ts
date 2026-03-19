@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import type { APIContext } from 'astro';
 import { BlogTopicService } from '@/lib/data/blog';
 import { slugify } from '@/lib/core/slugify';
@@ -7,14 +8,12 @@ const json = (data: unknown, status = 200) =>
 
 /** GET /api/blog-topics — list all blog topics with post counts */
 export async function GET(context: APIContext) {
-  const { env } = context.locals.runtime;
   const svc = new BlogTopicService(env.DB);
   return json(await svc.getWithCount());
 }
 
 /** POST /api/blog-topics — upsert a blog topic */
 export async function POST(context: APIContext) {
-  const { env } = context.locals.runtime;
   const body = await context.request.json().catch(() => null);
 
   let title = (body?.title as string)?.trim();

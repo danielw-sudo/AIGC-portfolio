@@ -1,10 +1,10 @@
 ---
+import { env } from "cloudflare:workers";
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { MigrationService } from '@/lib/data';
 
 import type { MigrationRow } from '@/lib/data/migrations';
 
-const { env } = Astro.locals.runtime;
 const svc = new MigrationService(env.DB);
 let history: MigrationRow[] = [];
 let loadError = '';

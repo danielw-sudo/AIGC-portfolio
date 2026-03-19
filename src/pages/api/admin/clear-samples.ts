@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import type { APIContext } from 'astro';
 import { deleteImage } from '@/lib/core/r2';
 
@@ -7,7 +8,6 @@ const json = (data: unknown, status = 200) =>
 const SAMPLE_R2_KEYS = ['samples/sample-kittens.jpg', 'samples/sample-whale-ride.jpg', 'samples/sample-winter-village.jpg'];
 
 export async function POST(ctx: APIContext) {
-  const { env } = ctx.locals.runtime;
 
   try {
     // Delete sample entries (entry_tags cascade automatically)

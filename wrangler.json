@@ -2,7 +2,6 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "aigc-portfolio",
   "account_id": "YOUR_CLOUDFLARE_ACCOUNT_ID",
-  "main": "dist/_worker.js/index.js",
   "compatibility_date": "2026-02-24",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
@@ -15,18 +14,19 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "YOUR_DB_NAME",
+      "database_name": "your-db-name",
       "database_id": "YOUR_D1_DATABASE_ID"
     }
   ],
   "r2_buckets": [
     {
       "binding": "IMAGES",
-      "bucket_name": "YOUR_R2_BUCKET_NAME"
+      "bucket_name": "your-r2-bucket-name"
     }
   ],
   "ai": {
-    "binding": "AI"
+    "binding": "AI",
+    "remote": true
   },
   "vars": {
     "R2_PUBLIC_URL": "https://YOUR_R2_CUSTOM_DOMAIN",

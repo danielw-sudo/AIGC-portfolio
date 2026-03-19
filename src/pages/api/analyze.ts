@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import type { APIContext } from 'astro';
 import { SettingsService, AIUsageService, TaxonomyService } from '@/lib/data';
 import { AIService, type AIModelTier } from '@/lib/ai/service';
@@ -21,7 +22,6 @@ function provider(model: string): string {
 }
 
 export async function POST(context: APIContext) {
-  const { env } = context.locals.runtime;
 
   if (!env.AI) {
     return new Response(

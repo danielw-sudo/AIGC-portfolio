@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import type { APIContext } from 'astro';
 import { SettingsService } from '@/lib/data';
 
@@ -12,7 +13,6 @@ const ALLOWED_KEYS = [
 ];
 
 export async function GET(context: APIContext) {
-  const { env } = context.locals.runtime;
   const settings = new SettingsService(env.DB);
   const all = await settings.getAll();
 
@@ -22,7 +22,6 @@ export async function GET(context: APIContext) {
 }
 
 export async function PUT(context: APIContext) {
-  const { env } = context.locals.runtime;
   const body = await context.request.json().catch(() => null) as Record<string, string> | null;
 
   if (!body || typeof body !== 'object') {

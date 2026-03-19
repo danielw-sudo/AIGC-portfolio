@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import type { APIContext } from 'astro';
 import { slugify } from '@/lib/core/slugify';
 import { EntryService, TaxonomyService } from '@/lib/data';
@@ -32,7 +33,6 @@ const PLATFORM_MAP: Record<string, string> = {
  * Body: { entries: CatalogEntry[], skip_images?: boolean }
  */
 export async function POST(context: APIContext) {
-  const { env } = context.locals.runtime;
 
   const body = await context.request.json().catch(() => null) as {
     entries?: CatalogEntry[];

@@ -1,14 +1,15 @@
 ---
+import { env } from "cloudflare:workers";
 import MainLayout from '@/layouts/MainLayout.astro';
 import { TaxonomyService, SettingsService } from '@/lib/data';
 
-const { env } = Astro.locals.runtime;
 const taxonomy = new TaxonomyService(env.DB);
 const settings = new SettingsService(env.DB);
-const [tags, metaDesc] = await Promise.all([
+const [allTags, metaDesc] = await Promise.all([
   taxonomy.getTagsWithCount(),
   settings.getMetaDesc('tags', 'Browse by mood, style, and vibe.'),
 ]);
+const tags = allTags.filter((t) => t.entry_count > 0);
 ---
 
 <MainLayout title="Tags" description={metaDesc}>

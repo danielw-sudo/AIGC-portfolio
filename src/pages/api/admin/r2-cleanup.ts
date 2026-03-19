@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import type { APIContext } from 'astro';
 
 const json = (data: unknown, status = 200) =>
@@ -33,7 +34,6 @@ async function findOrphans(db: D1Database, bucket: R2Bucket) {
 
 /** GET — dry run: list orphans. DELETE — remove orphans. */
 export async function GET(ctx: APIContext) {
-  const { env } = ctx.locals.runtime;
   try {
     const orphans = await findOrphans(env.DB, env.IMAGES);
     const totalSize = orphans.reduce((sum, o) => sum + o.size, 0);
@@ -49,7 +49,6 @@ export async function GET(ctx: APIContext) {
 }
 
 export async function DELETE(ctx: APIContext) {
-  const { env } = ctx.locals.runtime;
   try {
     const orphans = await findOrphans(env.DB, env.IMAGES);
     if (orphans.length === 0) return json({ count: 0, freedBytes: 0, deleted: true });

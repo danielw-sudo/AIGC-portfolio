@@ -32,8 +32,6 @@ jobs:
 
       - run: npm ci
 
-      - run: npx wrangler types
-
       - run: npx astro build
 
       - run: npx wrangler deploy

@@ -1,9 +1,9 @@
+import { env } from "cloudflare:workers";
 import type { APIContext } from 'astro';
 import { EntryService, EntryImageService } from '@/lib/data';
 import { deleteImage } from '@/lib/core/r2';
 
 export async function PUT(context: APIContext) {
-  const { env } = context.locals.runtime;
 
   const id = Number(context.params.id);
   if (!id) {
@@ -45,7 +45,6 @@ export async function PUT(context: APIContext) {
 }
 
 export async function DELETE(context: APIContext) {
-  const { env } = context.locals.runtime;
 
   const id = Number(context.params.id);
   if (!id) {

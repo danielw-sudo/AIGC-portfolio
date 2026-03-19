@@ -89,7 +89,7 @@ Fork → [DEPLOY_WITH_AI.md](./src/QuickStart/DEPLOY_WITH_AI.md) のプロンプ
 
 | レイヤー | テクノロジー |
 | :--- | :--- |
-| **フレームワーク** | Astro 5 (SSR) |
+| **フレームワーク** | Astro 6 (SSR) |
 | **ランタイム** | Cloudflare Workers (エッジ) |
 | **データベース** | Cloudflare D1 (サーバーレス SQLite) |
 | **ストレージ** | Cloudflare R2 (S3 互換) |

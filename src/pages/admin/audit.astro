@@ -1,9 +1,9 @@
 ---
+import { env } from "cloudflare:workers";
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import Icon from '@/components/Icon.astro';
 import { runAudit } from '@/lib/data/audit';
 
-const { env } = Astro.locals.runtime;
 const audit = await runAudit(env);
 const { entries, blog, seo, images } = audit;
 ---

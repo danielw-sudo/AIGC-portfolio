@@ -89,7 +89,7 @@ Adding a new AI provider is ~80 lines. Adding a new admin page follows establish
 
 | Layer | Technology |
 | :--- | :--- |
-| **Framework** | Astro 5 (SSR) |
+| **Framework** | Astro 6 (SSR) |
 | **Runtime** | Cloudflare Workers (edge) |
 | **Database** | Cloudflare D1 (serverless SQLite) |
 | **Storage** | Cloudflare R2 (S3-compatible) |
@@ -99,9 +99,10 @@ Adding a new AI provider is ~80 lines. Adding a new admin page follows establish
 
 ---
 
-## Current Release (v1.3.0)
+## Current Release (v1.4.0)
 
-- Full gallery with masonry layout, search, tag/model filtering
+- **Astro 6** with `@astrojs/cloudflare` v13 (vite-based build, `cloudflare:workers` env)
+- Gallery with masonry layout, tag/model filtering via URL params
 - Markdown blog with topics and RSS
 - Multi-provider AI: vision analysis, text generation, chat
 - Butler chatbot with site context injection
@@ -109,6 +110,7 @@ Adding a new AI provider is ~80 lines. Adding a new admin page follows establish
 - Smart onboarding checklist (detects actual DB state)
 - `setup.sh` one-command deploy
 - GitHub Actions CI (auto-deploys when credentials configured)
+- `llms.txt` for AI discoverability
 
 ---
 

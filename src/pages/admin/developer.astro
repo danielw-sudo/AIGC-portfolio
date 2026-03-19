@@ -1,9 +1,9 @@
 ---
+import { env } from "cloudflare:workers";
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import Icon from '@/components/Icon.astro';
 import { AIUsageService } from '@/lib/data/usage';
 
-const { env } = Astro.locals.runtime;
 const usage = new AIUsageService(env.DB);
 
 const [stats, total] = await Promise.all([

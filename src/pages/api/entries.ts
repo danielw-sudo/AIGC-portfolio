@@ -1,9 +1,9 @@
+import { env } from "cloudflare:workers";
 import type { APIContext } from 'astro';
 import { EntryService } from '@/lib/data';
 import type { CreateEntryInput } from '@/lib/core/types';
 
 export async function GET(context: APIContext) {
-  const { env } = context.locals.runtime;
   const url = context.url;
   const page = Number(url.searchParams.get('page')) || 1;
   const perPage = Math.min(Number(url.searchParams.get('per_page')) || 24, 100);
@@ -17,7 +17,6 @@ export async function GET(context: APIContext) {
 }
 
 export async function POST(context: APIContext) {
-  const { env } = context.locals.runtime;
 
   const body = await context.request.json().catch(() => null) as Record<string, unknown> | null;
   if (!body?.title || !body?.image_key || !body?.image_url) {

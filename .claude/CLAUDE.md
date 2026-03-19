@@ -32,7 +32,7 @@ The 0-code deploy is the entry point, not the ceiling:
 
 ```
 Runtime:     Cloudflare Workers (edge SSR)
-Framework:   Astro 5 (output: server)
+Framework:   Astro 6 (output: server)
 Database:    Cloudflare D1 (serverless SQLite)
 Storage:     Cloudflare R2 (S3-compatible)
 AI:          Multi-provider — CF Workers AI, NVIDIA NIM, Google Gemini
@@ -97,6 +97,7 @@ Dashboard toggle: users switch providers + edit system prompts from `/admin/sett
 ## Development Rules
 
 - **Edge runtime** — no `fs`, `path`, or Node.js builtins in server paths
+- **Env access** — `import { env } from "cloudflare:workers"` (not `Astro.locals.runtime.env`)
 - `nodejs_compat` flag enabled in wrangler.json
 - Tailwind V4 — CSS-native config, `@theme` in `global.css`, utility-first
 - Dark/light mode via `dark:` variant
@@ -113,7 +114,7 @@ Dashboard toggle: users switch providers + edit system prompts from `/admin/sett
 bash setup.sh     # creates D1, R2, deploys via wrangler
 
 # Manual
-npm run build     # wrangler types && astro build
+npm run build     # astro build
 npm run deploy    # build + wrangler deploy
 ```
 

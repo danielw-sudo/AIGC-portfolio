@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import type { APIContext } from 'astro';
 import { SettingsService, AIUsageService } from '@/lib/data';
 import { BlogTopicService } from '@/lib/data/blog';
@@ -16,7 +17,6 @@ const VALID_TIERS = ['fast', 'balanced', 'quality'];
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
 export async function POST(context: APIContext) {
-  const { env } = context.locals.runtime;
 
   if (!env.AI) {
     return new Response(JSON.stringify({ error: 'AI binding not configured' }), { status: 501, headers: JSON_HEADERS });

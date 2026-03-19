@@ -2,7 +2,7 @@
 [CONTEXT]
 REPO: AIGC-portfolio.
 WHY: Provide non-technical creators a zero-cost, instantly deployable, serverless AI art gallery and blog. Architecture favors extreme lightweight deployment ("Clean Slate") coupled to Cloudflare free-tier ecosystems. 
-PHILOSOPHY: Zero built-in auth (relies on CF Zero Trust). Zero heavy state managers (no Redux). Zero heavy frameworks (no React/Vue; use Astro 5 + vanilla JS islands). 
+PHILOSOPHY: Zero built-in auth (relies on CF Zero Trust). Zero heavy state managers (no Redux). Zero heavy frameworks (no React/Vue; use Astro 6 + vanilla JS islands). 
 
 [GOAL]
 WHAT: A production-ready, edge-rendered (SSR) portfolio powered by multi-provider AI (CF Workers AI, NVIDIA NIM, Google Gemini) for auto-tagging and image descriptions. 
