@@ -1,7 +1,7 @@
 # AIGC-portfolio — Claude Code Context
 # Github: danielw-sudo/AIGC-portfolio (or your fork)
 # Local: .../AIGC-portfolio — assign the local directory to keep the working path accurate
-# Updated: 2026-03-17
+# Updated: 2026-03-18
 
 ---
 
@@ -36,7 +36,7 @@ Framework:   Astro 6 (output: server)
 Database:    Cloudflare D1 (serverless SQLite)
 Storage:     Cloudflare R2 (S3-compatible)
 AI:          Multi-provider — CF Workers AI, NVIDIA NIM, Google Gemini
-Styling:     Tailwind CSS 4 (CSS-native @theme in global.css)
+Styling:     Tailwind CSS 4.2 (CSS-native @theme in global.css)
 Icons:       Lucide (lucide-static, server-rendered via Icon.astro)
 Auth:        Cloudflare Zero Trust (infrastructure-level, no in-app auth)
 ```
@@ -129,6 +129,19 @@ settings, blog_topics, blog_posts, blog_post_topics, ai_usage, _migrations.
 
 Schema: `schema.sql`
 Migrations: `migrations/0001_initial.sql` through `migrations/0009_prompt_params.sql`
+
+---
+
+## Demo Mode
+
+`DEMO_MODE` env var (off by default, inert when off):
+- `src/lib/core/demo.ts` — flag detection, write block (403), mock AI responses
+- 28 demo guards across API endpoints: `if (isDemoMode()) return demoBlock();`
+- 3 AI mocks: `demoMockChat()`, `demoMockAnalyze()`, `demoMockBlogAnalyze()`
+- Admin banner via `AdminLayout.astro`, demo hero via `index.astro`
+- Deploy config: `wrangler.demo.json` (gitignored — contains account IDs)
+- Live demo: `demo.tools4all.ai` (Worker custom domain)
+- Palette: teal+beige in `global.css` (differentiated from template default blue-slate)
 
 ---
 

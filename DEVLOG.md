@@ -1,5 +1,26 @@
 # AIGC Portfolio — Dev Log
 
+## 2026-03-18 — Live Demo Deploy & Palette Differentiation
+
+**What shipped:**
+- **Demo deployed** to `demo.tools4all.ai` via `wrangler.demo.json` (gitignored — contains account IDs)
+- Demo D1 database seeded: 5 models, 8 tags, 8 gallery entries (all featured), 2 blog posts, 3 topics, 9 settings, guide page
+- Demo-specific homepage hero: "Live Demo" badge, "Admin Demo" primary CTA, GitHub button — only renders when `DEMO_MODE=true`
+- Default hero rebranded from artwhisper → AIGC Portfolio
+- **Teal+beige palette** for demo differentiation: accent `#2bb5a0` (warm teal), light mode surface `#f4f0eb` (muted beige)
+- Tailwind CSS upgraded to 4.2.2
+- `wrangler.demo.json` added to `.gitignore`
+
+**Decisions:**
+- Color offset approach over full rebrand — "different but alike", same design DNA
+- No violet (eye fatigue at short wavelengths), no light blue on bright backgrounds
+- Demo uses picsum.photos placeholder images (no R2 uploads needed)
+- Custom domain via Worker Custom Domain (not CNAME — Workers don't have traditional origins)
+
+**Commits:** `f37905b`, `27087bd`
+
+---
+
 ## 2026-03-18 — Astro 6 Upgrade & Debt Cleanup
 
 **What shipped:**
@@ -41,16 +62,3 @@
 
 **Strategic note:** AaaS thesis captured — "make everything API (frontend, db, admin), give API keys to IDE/Claude Code". Deferred to future sprint.
 
----
-
-## 2026-03-17 — CI Workflow Fix
-
-**Problem:** Deploy workflow ran on every push to `main`, failed with red X on template forks (no credentials configured). Bad first impression.
-
-**What shipped:**
-- Workflow now uses `workflow_dispatch` + secret-gated push trigger (`67ea610`)
-- On push: silently skips if `CLOUDFLARE_API_TOKEN` is missing
-- On manual dispatch: always runs, with actionable error if token missing
-- SETUP.md Step 5 updated in all 3 languages to reflect new deploy flow
-
-**Decision:** Option C (both triggers) — quiet for template forks, automatic once credentials are added.
