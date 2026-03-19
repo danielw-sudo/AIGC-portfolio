@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { isDemoMode, demoBlock } from '@/lib/core/demo';
 import type { APIContext } from 'astro';
 import { slugify } from '@/lib/core/slugify';
 import { generateImageKey, uploadImage, ensureUniqueKey, getPublicUrl } from '@/lib/core/r2';
@@ -6,6 +7,7 @@ import { getImageDimensions } from '@/lib/core/image-dimensions';
 
 export async function POST(context: APIContext) {
 
+  if (isDemoMode()) return demoBlock(); // demo-guard:POST
   const formData = await context.request.formData();
   const file = formData.get('image') as File | null;
   const slugHint = formData.get('slug')?.toString() || '';

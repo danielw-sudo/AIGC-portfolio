@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { isDemoMode, demoBlock } from '@/lib/core/demo';
 import type { APIContext } from 'astro';
 import { EntryService } from '@/lib/data';
 import type { CreateEntryInput } from '@/lib/core/types';
@@ -18,6 +19,7 @@ export async function GET(context: APIContext) {
 
 export async function POST(context: APIContext) {
 
+  if (isDemoMode()) return demoBlock(); // demo-guard:POST
   const body = await context.request.json().catch(() => null) as Record<string, unknown> | null;
   if (!body?.title || !body?.image_key || !body?.image_url) {
     return new Response(

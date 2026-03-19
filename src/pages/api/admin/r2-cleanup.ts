@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { isDemoMode, demoBlock } from '@/lib/core/demo';
 import type { APIContext } from 'astro';
 
 const json = (data: unknown, status = 200) =>
@@ -49,6 +50,7 @@ export async function GET(ctx: APIContext) {
 }
 
 export async function DELETE(ctx: APIContext) {
+  if (isDemoMode()) return demoBlock(); // demo-guard:DELETE
   try {
     const orphans = await findOrphans(env.DB, env.IMAGES);
     if (orphans.length === 0) return json({ count: 0, freedBytes: 0, deleted: true });

@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { isDemoMode, demoBlock } from '@/lib/core/demo';
 import type { APIContext } from 'astro';
 import { EntryService, EntryImageService } from '@/lib/data';
 import { deleteImage } from '@/lib/core/r2';
@@ -16,6 +17,7 @@ export async function GET(context: APIContext) {
 }
 
 export async function POST(context: APIContext) {
+  if (isDemoMode()) return demoBlock(); // demo-guard:POST
   const entryId = Number(context.params.id);
   if (!entryId) return json({ error: 'Invalid entry ID' }, 400);
 
@@ -41,6 +43,7 @@ export async function POST(context: APIContext) {
 }
 
 export async function DELETE(context: APIContext) {
+  if (isDemoMode()) return demoBlock(); // demo-guard:DELETE
   const entryId = Number(context.params.id);
   if (!entryId) return json({ error: 'Invalid entry ID' }, 400);
 

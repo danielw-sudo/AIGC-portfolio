@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { isDemoMode, demoBlock } from '@/lib/core/demo';
 import type { APIContext } from 'astro';
 import { TaxonomyService } from '@/lib/data';
 
@@ -6,6 +7,7 @@ const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 
 export async function PUT(context: APIContext) {
+  if (isDemoMode()) return demoBlock(); // demo-guard:PUT
   const id = Number(context.params.id);
   if (!id) return json({ error: 'Invalid ID' }, 400);
 
@@ -22,6 +24,7 @@ export async function PUT(context: APIContext) {
 }
 
 export async function DELETE(context: APIContext) {
+  if (isDemoMode()) return demoBlock(); // demo-guard:DELETE
   const id = Number(context.params.id);
   if (!id) return json({ error: 'Invalid ID' }, 400);
 

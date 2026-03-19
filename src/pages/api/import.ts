@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { isDemoMode, demoBlock } from '@/lib/core/demo';
 import type { APIContext } from 'astro';
 import { slugify } from '@/lib/core/slugify';
 import { EntryService, TaxonomyService } from '@/lib/data';
@@ -34,6 +35,7 @@ const PLATFORM_MAP: Record<string, string> = {
  */
 export async function POST(context: APIContext) {
 
+  if (isDemoMode()) return demoBlock(); // demo-guard:POST
   const body = await context.request.json().catch(() => null) as {
     entries?: CatalogEntry[];
     skip_images?: boolean;

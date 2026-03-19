@@ -6,6 +6,7 @@ import { parseBlogAIMarkdown } from '@/lib/ai/parsers';
 import { DEFAULT_BLOG_RECIPE } from '@/lib/ai/models';
 import { DEFAULT_BLOG_COPYWRITE_RECIPE } from '@/lib/data/settings';
 import { createTextProvider } from '@/lib/ai/cf-provider';
+import { isDemoMode, demoMockBlogAnalyze } from '@/lib/core/demo';
 
 function provider(model: string): string {
   if (model.startsWith('@nv/')) return 'nvidia';
@@ -17,6 +18,7 @@ const VALID_TIERS = ['fast', 'balanced', 'quality'];
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
 export async function POST(context: APIContext) {
+  if (isDemoMode()) return demoMockBlogAnalyze();
 
   if (!env.AI) {
     return new Response(JSON.stringify({ error: 'AI binding not configured' }), { status: 501, headers: JSON_HEADERS });

@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { isDemoMode, demoBlock } from '@/lib/core/demo';
 import type { APIContext } from 'astro';
 import { BlogPostService } from '@/lib/data/blog';
 
@@ -15,6 +16,7 @@ export async function GET(context: APIContext) {
 
 /** POST /api/blog — create a new blog post */
 export async function POST(context: APIContext) {
+  if (isDemoMode()) return demoBlock(); // demo-guard:POST
   const body = await context.request.json().catch(() => null);
 
   const title = (body?.title as string)?.trim();

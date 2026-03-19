@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { isDemoMode, demoBlock } from '@/lib/core/demo';
 import type { APIContext } from 'astro';
 import { getImageDimensions } from '@/lib/core/image-dimensions';
 
@@ -12,6 +13,7 @@ const json = (data: unknown, status = 200) =>
  */
 export async function POST(context: APIContext) {
 
+  if (isDemoMode()) return demoBlock(); // demo-guard:POST
   const { results: entries } = await env.DB
     .prepare('SELECT id, image_key FROM entries WHERE width IS NULL AND image_key IS NOT NULL')
     .all<{ id: number; image_key: string }>();

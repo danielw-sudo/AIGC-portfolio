@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { isDemoMode, demoBlock } from '@/lib/core/demo';
 import type { APIContext } from 'astro';
 import { BlogPostService } from '@/lib/data/blog';
 
@@ -7,6 +8,7 @@ const json = (data: unknown, status = 200) =>
 
 /** PUT /api/blog/:id — update a blog post */
 export async function PUT(context: APIContext) {
+  if (isDemoMode()) return demoBlock(); // demo-guard:PUT
   const id = Number(context.params.id);
   if (!id) return json({ error: 'Invalid id' }, 400);
 
@@ -53,6 +55,7 @@ export async function PUT(context: APIContext) {
 
 /** DELETE /api/blog/:id — delete a blog post */
 export async function DELETE(context: APIContext) {
+  if (isDemoMode()) return demoBlock(); // demo-guard:DELETE
   const id = Number(context.params.id);
   if (!id) return json({ error: 'Invalid id' }, 400);
 

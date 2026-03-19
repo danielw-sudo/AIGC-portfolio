@@ -1,6 +1,8 @@
 ---
 import '@/styles/global.css';
+import { isDemoMode } from '@/lib/core/demo';
 
+const demoMode = isDemoMode();
 const { title = 'Admin' } = Astro.props;
 ---
 
@@ -61,6 +63,21 @@ const { title = 'Admin' } = Astro.props;
         <a href="/" class="block py-2 admin-link-muted">View Site →</a>
       </div>
     </nav>
+    {demoMode && (
+      <div class="demo-banner border-b px-3 sm:px-4 py-2.5">
+        <div class="max-w-6xl mx-auto flex items-center justify-between gap-3">
+          <p class="text-xs sm:text-sm">
+            <span class="font-semibold demo-banner-title">Demo Mode</span>
+            <span class="demo-banner-text ml-1.5">Writes disabled, AI responses mocked.</span>
+          </p>
+          <a href="https://github.com/danielw-sudo/AIGC-portfolio"
+             target="_blank" rel="noopener"
+             class="shrink-0 text-xs font-medium demo-banner-link hover:underline">
+            Fork repo &rarr;
+          </a>
+        </div>
+      </div>
+    )}
     <main class="max-w-6xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
       <slot />
     </main>
@@ -167,6 +184,16 @@ const { title = 'Admin' } = Astro.props;
   /* Footer */
   .admin-footer { border-color: #1f2937; color: #6b7280; }
   html[data-theme="light"] .admin-footer { border-color: #e2e8f0; color: #94a3b8; }
+
+  /* Demo banner */
+  .demo-banner { background: rgba(120, 53, 15, 0.3); border-color: #92400e; }
+  .demo-banner-title { color: #fbbf24; }
+  .demo-banner-text { color: #fde68a; }
+  .demo-banner-link { color: #fbbf24; }
+  html[data-theme="light"] .demo-banner { background: #fef3c7; border-color: #f59e0b; }
+  html[data-theme="light"] .demo-banner-title { color: #92400e; }
+  html[data-theme="light"] .demo-banner-text { color: #78350f; }
+  html[data-theme="light"] .demo-banner-link { color: #b45309; }
 
   /* AI suggestion panel entrance */
   @keyframes ai-slide-in {

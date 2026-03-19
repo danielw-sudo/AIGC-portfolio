@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { isDemoMode, demoBlock } from '@/lib/core/demo';
 import type { APIContext } from 'astro';
 import { SettingsService } from '@/lib/data';
 
@@ -22,6 +23,7 @@ export async function GET(context: APIContext) {
 }
 
 export async function PUT(context: APIContext) {
+  if (isDemoMode()) return demoBlock(); // demo-guard:PUT
   const body = await context.request.json().catch(() => null) as Record<string, string> | null;
 
   if (!body || typeof body !== 'object') {

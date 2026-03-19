@@ -5,6 +5,7 @@ import { createTextProvider } from '@/lib/ai/cf-provider';
 import { DEFAULT_TIER_MODELS } from '@/lib/ai/models';
 import type { ChatMessage } from '@/lib/ai/types';
 import { BUTLER_DEFAULT_PROMPT } from '@/lib/ai/butler-prompt';
+import { isDemoMode, demoMockChat } from '@/lib/core/demo';
 
 const JSON_H = { 'Content-Type': 'application/json' };
 
@@ -48,6 +49,7 @@ async function buildSiteContext(db: D1Database, env: Record<string, unknown>): P
 }
 
 export async function POST(ctx: APIContext) {
+  if (isDemoMode()) return demoMockChat();
   if (!env.AI) {
     return new Response(JSON.stringify({ error: 'AI binding not configured' }), { status: 501, headers: JSON_H });
   }

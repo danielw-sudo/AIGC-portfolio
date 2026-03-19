@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { isDemoMode, demoBlock } from '@/lib/core/demo';
 import type { APIContext } from 'astro';
 import { PageService } from '@/lib/data';
 
@@ -11,6 +12,7 @@ export async function GET(context: APIContext) {
 }
 
 export async function POST(context: APIContext) {
+  if (isDemoMode()) return demoBlock(); // demo-guard:POST
   const body = await context.request.json().catch(() => null);
   const title = (body?.title as string)?.trim();
   if (!title) return json({ error: 'title is required' }, 400);

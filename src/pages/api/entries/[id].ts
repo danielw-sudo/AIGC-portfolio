@@ -1,10 +1,12 @@
 import { env } from "cloudflare:workers";
+import { isDemoMode, demoBlock } from '@/lib/core/demo';
 import type { APIContext } from 'astro';
 import { EntryService, EntryImageService } from '@/lib/data';
 import { deleteImage } from '@/lib/core/r2';
 
 export async function PUT(context: APIContext) {
 
+  if (isDemoMode()) return demoBlock(); // demo-guard:PUT
   const id = Number(context.params.id);
   if (!id) {
     return new Response(JSON.stringify({ error: 'Invalid ID' }), {
@@ -46,6 +48,7 @@ export async function PUT(context: APIContext) {
 
 export async function DELETE(context: APIContext) {
 
+  if (isDemoMode()) return demoBlock(); // demo-guard:DELETE
   const id = Number(context.params.id);
   if (!id) {
     return new Response(JSON.stringify({ error: 'Invalid ID' }), {

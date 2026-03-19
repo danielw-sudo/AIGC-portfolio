@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { isDemoMode, demoBlock } from '@/lib/core/demo';
 import type { APIContext } from 'astro';
 import { deleteImage } from '@/lib/core/r2';
 
@@ -9,6 +10,7 @@ const SAMPLE_R2_KEYS = ['samples/sample-kittens.jpg', 'samples/sample-whale-ride
 
 export async function POST(ctx: APIContext) {
 
+  if (isDemoMode()) return demoBlock(); // demo-guard:POST
   try {
     // Delete sample entries (entry_tags cascade automatically)
     const entryResult = await env.DB.prepare(

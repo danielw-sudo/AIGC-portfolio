@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { isDemoMode, demoBlock } from '@/lib/core/demo';
 import type { APIContext } from 'astro';
 import { TaxonomyService } from '@/lib/data';
 import { slugify } from '@/lib/core/slugify';
@@ -14,6 +15,7 @@ export async function GET(context: APIContext) {
 
 export async function POST(context: APIContext) {
 
+  if (isDemoMode()) return demoBlock(); // demo-guard:POST
   const body = await context.request.json().catch(() => null) as Record<string, unknown> | null;
   const INVALID_NAMES = new Set(['none', 'null', 'n/a', 'na', 'undefined', 'nothing', '-']);
   const raw = (body?.title as string)?.trim();

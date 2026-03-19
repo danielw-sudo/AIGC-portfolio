@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { isDemoMode, demoBlock } from '@/lib/core/demo';
 import type { APIContext } from 'astro';
 import { slugify } from '@/lib/core/slugify';
 import { generateImageKey, uploadImage, ensureUniqueKey, getPublicUrl } from '@/lib/core/r2';
@@ -20,6 +21,7 @@ const MAX_SIZE = 25 * 1024 * 1024; // 25 MB
  */
 export async function POST(context: APIContext) {
 
+  if (isDemoMode()) return demoBlock(); // demo-guard:POST
   const body = await context.request.json().catch(() => null) as { url?: string; slug?: string } | null;
   if (!body?.url) {
     return json({ error: 'url is required' }, 400);

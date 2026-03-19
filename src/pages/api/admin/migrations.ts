@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { isDemoMode, demoBlock } from '@/lib/core/demo';
 import type { APIContext } from 'astro';
 import { MigrationService } from '@/lib/data/migrations';
 
@@ -20,6 +21,7 @@ export async function GET(context: APIContext) {
 
 /** POST /api/admin/migrations — execute a migration */
 export async function POST(context: APIContext) {
+  if (isDemoMode()) return demoBlock(); // demo-guard:POST
   const body = await context.request.json().catch(() => null);
 
   const name = (body?.name as string)?.trim();

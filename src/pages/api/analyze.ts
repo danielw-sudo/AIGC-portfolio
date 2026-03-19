@@ -5,6 +5,7 @@ import { AIService, type AIModelTier } from '@/lib/ai/service';
 import { VisionService } from '@/lib/ai/vision';
 import { parseAIMarkdown } from '@/lib/ai/parsers';
 import { createTextProvider, createCfVisionProvider } from '@/lib/ai/cf-provider';
+import { isDemoMode, demoMockAnalyze } from '@/lib/core/demo';
 
 const VALID_TIERS = ['fast', 'balanced', 'quality'];
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
@@ -22,6 +23,7 @@ function provider(model: string): string {
 }
 
 export async function POST(context: APIContext) {
+  if (isDemoMode()) return demoMockAnalyze();
 
   if (!env.AI) {
     return new Response(

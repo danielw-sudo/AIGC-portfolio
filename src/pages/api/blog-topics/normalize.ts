@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { isDemoMode, demoBlock } from '@/lib/core/demo';
 import type { APIContext } from 'astro';
 import { BlogTopicService } from '@/lib/data/blog';
 import { toTitleCase } from '@/lib/core/slugify';
@@ -8,6 +9,7 @@ const json = (data: unknown, status = 200) =>
 
 /** POST /api/blog-topics/normalize — Title Case all existing blog topics. Idempotent. */
 export async function POST(context: APIContext) {
+  if (isDemoMode()) return demoBlock(); // demo-guard:POST
   const svc = new BlogTopicService(env.DB);
   const topics = await svc.getAll();
 

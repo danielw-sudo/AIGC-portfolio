@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { isDemoMode, demoBlock } from '@/lib/core/demo';
 import type { APIContext } from 'astro';
 import { TaxonomyService } from '@/lib/data';
 import { toTitleCase } from '@/lib/core/slugify';
@@ -8,6 +9,7 @@ const json = (data: unknown, status = 200) =>
 
 /** POST /api/tags/normalize — Title Case all existing tags. Idempotent. */
 export async function POST(context: APIContext) {
+  if (isDemoMode()) return demoBlock(); // demo-guard:POST
   const taxonomy = new TaxonomyService(env.DB);
   const tags = await taxonomy.getAllTags();
 
