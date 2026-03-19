@@ -10,3 +10,4 @@ npm-debug.log*
 .wrangler/
 worker-configuration.d.ts
 .claude/settings.local.json
+wrangler.demo.json

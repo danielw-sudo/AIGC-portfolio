@@ -4,7 +4,9 @@ import MainLayout from '@/layouts/MainLayout.astro';
 import ImageCard from '@/components/ImageCard.astro';
 import { EntryService, SettingsService } from '@/lib/data';
 import { BlogPostService } from '@/lib/data/blog';
+import { isDemoMode } from '@/lib/core/demo';
 
+const demoMode = isDemoMode();
 const entries = new EntryService(env.DB);
 const blog = new BlogPostService(env.DB);
 const settings = new SettingsService(env.DB);
@@ -14,15 +16,15 @@ const [featuredEntries, featuredBlogRaw, latestBlog, siteConfig, metaDesc] = awa
   blog.listFeatured(5),
   blog.listLatest(5),
   settings.getSiteConfig(),
-  settings.getMetaDesc('home', 'The artworks I like, with the prompts ready to remix. AI art is art. Hope you like it.'),
+  settings.getMetaDesc('home', 'AI-generated art gallery with prompts ready to remix. Powered by Cloudflare Workers.'),
 ]);
 
 // Featured first, fall back to latest
 const featuredBlog = featuredBlogRaw.length > 0 ? featuredBlogRaw : latestBlog;
 
 // Hero config with defaults
-const heroTitle = siteConfig.heroTitle || 'art<span class="text-accent">whisper</span>';
-const heroSubtitle = siteConfig.heroSubtitle || 'Curated AI-generated art with the prompts that made them.';
+const heroTitle = siteConfig.heroTitle || 'AIGC<span class="text-accent">Portfolio</span>';
+const heroSubtitle = siteConfig.heroSubtitle || 'AI-generated art gallery with the prompts that made them.';
 const cta1Text = siteConfig.heroCta1.text || 'Browse Gallery';
 const cta1Url = siteConfig.heroCta1.url || '/gallery';
 const cta2Text = siteConfig.heroCta2.text || 'Read the Blog';
@@ -32,29 +34,77 @@ const cta2Url = siteConfig.heroCta2.url || '/blog';
 <MainLayout description={metaDesc}>
   <!-- Hero -->
   <section class="max-w-3xl mx-auto px-4 pt-16 sm:pt-24 pb-10 text-center">
-    <h1 class="text-5xl sm:text-6xl lg:text-7xl tracking-tight text-text-primary mb-4 hero-title" set:html={heroTitle} />
-    <p class="text-text-secondary text-lg sm:text-xl mb-8 hero-subtitle">
-      {heroSubtitle}
-    </p>
-    <div class="flex items-center justify-center gap-3 hero-cta">
-      <a
-        href={cta1Url}
-        class="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent/90
-               text-white font-medium rounded-xl transition-colors"
-      >
-        {cta1Text}
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-        </svg>
-      </a>
-      <a
-        href={cta2Url}
-        class="inline-flex items-center gap-2 px-6 py-3 border border-accent/40
-               text-accent hover:bg-accent/10 font-medium rounded-xl transition-colors"
-      >
-        {cta2Text}
-      </a>
-    </div>
+    {demoMode ? (
+      <Fragment>
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-medium mb-6">
+          <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+          Live Demo
+        </div>
+        <h1 class="text-5xl sm:text-6xl lg:text-7xl tracking-tight text-text-primary mb-4 hero-title">
+          AIGC<span class="text-accent">Portfolio</span>
+        </h1>
+        <p class="text-text-secondary text-lg sm:text-xl mb-3">
+          Open-source AI art gallery + blog + admin panel.
+        </p>
+        <p class="text-text-muted text-sm mb-8">
+          Deploys to Cloudflare free tier. Zero coding required.
+        </p>
+        <div class="flex items-center justify-center gap-3 hero-cta flex-wrap">
+          <a
+            href="/admin"
+            class="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent/90
+                   text-white font-medium rounded-xl transition-colors"
+          >
+            Admin Demo
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </a>
+          <a
+            href="/gallery"
+            class="inline-flex items-center gap-2 px-6 py-3 border border-accent/40
+                   text-accent hover:bg-accent/10 font-medium rounded-xl transition-colors"
+          >
+            Browse Gallery
+          </a>
+          <a
+            href="https://github.com/danielw-sudo/AIGC-portfolio"
+            target="_blank" rel="noopener"
+            class="inline-flex items-center gap-2 px-6 py-3 border border-border
+                   text-text-secondary hover:text-text-primary hover:border-text-muted font-medium rounded-xl transition-colors"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            GitHub
+          </a>
+        </div>
+      </Fragment>
+    ) : (
+      <Fragment>
+        <h1 class="text-5xl sm:text-6xl lg:text-7xl tracking-tight text-text-primary mb-4 hero-title" set:html={heroTitle} />
+        <p class="text-text-secondary text-lg sm:text-xl mb-8 hero-subtitle">
+          {heroSubtitle}
+        </p>
+        <div class="flex items-center justify-center gap-3 hero-cta">
+          <a
+            href={cta1Url}
+            class="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent/90
+                   text-white font-medium rounded-xl transition-colors"
+          >
+            {cta1Text}
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </a>
+          <a
+            href={cta2Url}
+            class="inline-flex items-center gap-2 px-6 py-3 border border-accent/40
+                   text-accent hover:bg-accent/10 font-medium rounded-xl transition-colors"
+          >
+            {cta2Text}
+          </a>
+        </div>
+      </Fragment>
+    )}
   </section>
 
   <!-- Featured Gallery — 4x2 grid, 4:5 aspect ratio -->
