@@ -94,7 +94,7 @@ Adding a new AI provider is ~80 lines. Adding a new admin page follows establish
 | **Database** | Cloudflare D1 (serverless SQLite) |
 | **Storage** | Cloudflare R2 (S3-compatible) |
 | **AI** | CF Workers AI + NVIDIA NIM + Google Gemini |
-| **Styling** | Tailwind CSS 4 |
+| **Styling** | Tailwind CSS 4.2.2 |
 | **Dependencies** | 9 total (zero React, zero ORMs, zero AI SDKs) |
 
 ---

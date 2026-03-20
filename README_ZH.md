@@ -94,7 +94,7 @@ Fork → 将 [DEPLOY_WITH_AI.md](./src/QuickStart/DEPLOY_WITH_AI.md) 中的提�
 | **数据库** | Cloudflare D1 (无服务器 SQLite) |
 | **存储** | Cloudflare R2 (S3 兼容) |
 | **AI** | CF Workers AI + NVIDIA NIM + Google Gemini |
-| **样式** | Tailwind CSS 4 |
+| **样式** | Tailwind CSS 4.2.2 |
 | **依赖** | 共 9 个（零 React、零 ORM、零 AI SDK） |
 
 ---

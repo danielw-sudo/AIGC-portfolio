@@ -94,7 +94,7 @@ Fork → [DEPLOY_WITH_AI.md](./src/QuickStart/DEPLOY_WITH_AI.md) のプロンプ
 | **データベース** | Cloudflare D1 (サーバーレス SQLite) |
 | **ストレージ** | Cloudflare R2 (S3 互換) |
 | **AI** | CF Workers AI + NVIDIA NIM + Google Gemini |
-| **スタイリング** | Tailwind CSS 4 |
+| **スタイリング** | Tailwind CSS 4.2.2 |
 | **依存関係** | 合計 9 個（React ゼロ、ORM ゼロ、AI SDK ゼロ） |
 
 ---
